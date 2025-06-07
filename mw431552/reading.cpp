@@ -115,27 +115,25 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
             }
 
             MPI_Barrier(MPI_COMM_WORLD);
-            
+
             for (int i = 0; i < local_vertex_count; ++i) {
                 local_flag |= local_changed[i];
             }
 
             MPI_Barrier(MPI_COMM_WORLD);
 
-            if (local_flag) {
 
-                for (int i = 0; i < local_vertex_count; i++) {
-                    if (local_changed[i] == 1) {
-                        long long old_bucket = local_d_prev[i] / delta;
-                        long long new_bucket = local_d[i] / delta;
+            for (int i = 0; i < local_vertex_count; i++) {
+                if (local_changed[i] == 1) {
+                    long long old_bucket = local_d_prev[i] / delta;
+                    long long new_bucket = local_d[i] / delta;
 
-                        if (new_bucket < old_bucket) {
-                            buckets[old_bucket].erase(i);
-                            buckets[new_bucket].insert(i);
-                            A_prim.insert(i);
-                            local_d_prev[i] = local_d[i];
-                            local_changed[i] = 0;
-                        }
+                    if (new_bucket < old_bucket) {
+                        buckets[old_bucket].erase(i);
+                        buckets[new_bucket].insert(i);
+                        A_prim.insert(i);
+                        local_d_prev[i] = local_d[i];
+                        local_changed[i] = 0;
                     }
                 }
             }
