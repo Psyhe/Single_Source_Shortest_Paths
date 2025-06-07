@@ -175,8 +175,9 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
                     long long old_bucket = local_d_prev[i] / delta;
                     long long new_bucket = local_d[i] / delta;
 
+                    int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
+
                     if (new_bucket < old_bucket) {
-                        int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
                         buckets[old_bucket].erase(global_id);
                         buckets[new_bucket].insert(global_id);
                     }
