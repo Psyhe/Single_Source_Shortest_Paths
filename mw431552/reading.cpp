@@ -56,7 +56,7 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
 
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
-    for (int k = 0; k < 10; k++) {
+    for (int k = 0; k < 20; k++) {
 
         if (buckets.count(k) == 0) {
             continue;
@@ -89,6 +89,7 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
                     int old_bucket = d_v / delta;
                     long long old_d = d_v;
                     long long new_d = min(d_v, d_u + w);
+                    cout << "new min updated " << new_d << endl;
 
                     if (new_d < old_d) {
                         // Update remote d_v
@@ -295,7 +296,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    outfile << "shit" << "\n";
+    outfile << "shit 1" << "\n";
 
     for (int v = start_vertex; v <= end_vertex; ++v) {
         outfile << v << " " << final_values[v] << "\n";
