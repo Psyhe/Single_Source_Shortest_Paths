@@ -303,7 +303,7 @@ int main(int argc, char** argv) {
         for (Edge e: v.edges) {
             outfile << e.v2 << " w: " << e.weight << ";";
         }
-        outfile << "\n"l
+        outfile << "\n";
     }
     // for (int v = start_vertex; v <= end_vertex; ++v) {
     //     outfile << v << " " << final_values[v] << "\n";
