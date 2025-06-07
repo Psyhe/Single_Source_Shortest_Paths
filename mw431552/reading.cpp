@@ -92,6 +92,7 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
         while (global_flag) {
             set<int> A_prim;
             for (int u : A) {
+                cout << "Processing in rank: " << rank << " and k: " << k;
                 Vertex &current_vertex = vertex_mapping[u];
                 long long d_u = local_d[local_index(u, local_vertex_count)];
 
