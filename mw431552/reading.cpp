@@ -297,7 +297,7 @@ int main(int argc, char** argv) {
     outfile << "shit" << "\n";
 
     for (int v = start_vertex; v <= end_vertex; ++v) {
-        outfile << final_values[v] << "\n";
+        outfile << v << " " << final_values[v] << "\n";
     }
     outfile.close();
 
