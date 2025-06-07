@@ -112,6 +112,7 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
                 }
             }
 
+            MPI_Barrier(MPI_COMM_WORLD); 
             A.clear();
 
             set_intersection(A_prim.begin(), A_prim.end(),
