@@ -251,7 +251,7 @@ int main(int argc, char** argv) {
     for (int i = start_vertex; i <= end_vertex; i++) {
         Vertex v;
         v.id = i;
-        vector<long long> edges;
+        vector<Edge> edges;
         v.edges = edges;
         my_vertices[i] = v;
     }
