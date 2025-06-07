@@ -10,7 +10,6 @@
 #include <algorithm>
 
 
-
 using namespace std;
 
 const int INF = 1e9;
@@ -28,26 +27,34 @@ struct Vertex {
     vector<Edge> edges;
 };
 
-unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_mapping, int root) {
-    unordered_map<int, long long> d;
-    unordered_map<long long, set<int>> buckets;
+int owner(int v, int num_processes) {
+    return v/num_processes;
+}
+
+int local_index(int v, int num_processes) {
+    return v % num_procs;
+}
+
+unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_processes, int local_vertex_count) {    
+    vector<long long> local_d(local_vertex_count, INF);
+
+    // Setup MPI Window for local_d
+    MPI_Win win;
+    MPI_Win_create(local_d.data(), local_vertex_count * sizeof(long long),
+                   sizeof(long long), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
 
 
     set<int> zero_set;
     set<int> inf_set;
 
-    buckets[INF] = zero_set;
-    for (auto& it: vertex_mapping) {
-        if (root == root) {
-            d[v.id] = 0;
-            buckets[0] = zero_set;
-            buckets[0].insert(it.first);
-        }
-        else {
-            d[it.first] = INF;
-        }
+    unordered_map<long long, set<int>> buckets;
+
+    if (owner(root, num_procs) == rank) {
+        local_d[local_index(root, num_procs)] = 0;
+        buckets[0].insert(root);
     }
 
+    MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
     for (int k = 0; k < INF; k++) {
 
@@ -61,38 +68,47 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
         while(!A.empty()){
             set<int> A_prim;
             for (int u: A) {
-                Vertex current_vertex = vertex_mapping[u];
-                vector<Edge> edges = current_vertex.edges;
+                Vertex &current_vertex = vertex_mapping[u];
 
-                for (Edge e: edges) {
+                long long d_u;
+                d_u = local_d[local_index(u, num_procs)];
+
+                for (Edge e : current_vertex.edges) {
                     // Relax edge
-                    int u = e.v1;
                     int v = e.v2;
                     long long w = e.weight;
+                    
+                    long long d_v;
+                    // Read current d[v]
+                    MPI_Win_lock(MPI_LOCK_SHARED, owner(v, num_procs), 0, win);
+                    MPI_Get(&d_v, 1, MPI_LONG_LONG, owner(v, num_procs),
+                            local_index(v, num_procs), 1, MPI_LONG_LONG, win);
+                    MPI_Win_unlock(owner(v, num_procs), win);
 
-                    int old_bucket = d[v]/delta;
-                    long long old_d = d[v];
-                    d[v] = min(d[v], d[u] + w);
+
+                    int old_bucket = d_v / delta;
+                    long long old_d = d_v;
+                    long long new_d = min(d_v, d_u + w);
 
                     if (d[u] + w < d[v]) {
-                        long long old_bucket = d[v] / delta;
-                        d[v] = d[u] + w;
-                        long long new_bucket = d[v] / delta;
+                        // Update remote d[v]
+                        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner(v, num_procs), 0, win);
+                        MPI_Put(&new_d, 1, MPI_LONG_LONG, owner(v, num_procs),
+                                local_index(v, num_procs), 1, MPI_LONG_LONG, win);
+                        MPI_Win_unlock(owner(v, num_procs), win);
 
-                        if(new_bucket < old_bucket) {
-                            buckets[old_bucket].erase(v);
+                        if (owner(v, num_procs) == rank) {
+                            long long old_bucket = d_v / delta;
+                            long long new_bucket = new_d / delta;
 
-                            if (buckets.count(new_bucket) == 0) {
-                                set<int> new_set;
-                                buckets[new_bucket] = new_set;
+                            if (new_bucket < old_bucket) {
+                                buckets[old_bucket].erase(v);
+                                buckets[new_bucket].insert(v);
+                                A_prim.insert(v);
                             }
-                            buckets[new_bucket].insert(v);
                         }
 
-                        A_prim.insert(v);
-
                     }
-                    
                 }
             }
 
@@ -105,9 +121,98 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
 
         buckets[k].clear();
     }
+    MPI_Win_free(&win);
 
-    return d;
+    unordered_map<int, long long> result;
+    for (int i = 0; i < local_vertex_count; ++i) {
+        int global_id = i * num_procs + rank;
+        result[global_id] = local_d[i];
+    }
+
+    return result;
 }
+
+
+// unordered_map_seq<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_mapping, int root, int rank) {
+//     unordered_map<int, long long> d;
+//     unordered_map<long long, set<int>> buckets;
+
+
+//     set<int> zero_set;
+//     set<int> inf_set;
+
+//     buckets[INF] = zero_set;
+//     for (auto& it: vertex_mapping) {
+//         if (root == root) {
+//             d[v.id] = 0;
+//             buckets[0] = zero_set;
+//             buckets[0].insert(it.first);
+//         }
+//         else {
+//             d[it.first] = INF;
+//         }
+//     }
+
+
+//     for (int k = 0; k < INF; k++) {
+
+//         if (buckets.count(k) == 0) {
+//             continue;
+//         }
+
+//         set<int> A = buckets[k];
+
+//         // Process bucket
+//         while(!A.empty()){
+//             set<int> A_prim;
+//             for (int u: A) {
+//                 Vertex current_vertex = vertex_mapping[u];
+//                 vector<Edge> edges = current_vertex.edges;
+
+//                 for (Edge e: edges) {
+//                     // Relax edge
+//                     int u = e.v1;
+//                     int v = e.v2;
+//                     long long w = e.weight;
+
+//                     int old_bucket = d[v]/delta;
+//                     long long old_d = d[v];
+//                     d[v] = min(d[v], d[u] + w);
+
+//                     if (d[u] + w < d[v]) {
+//                         long long old_bucket = d[v] / delta;
+//                         d[v] = d[u] + w;
+//                         long long new_bucket = d[v] / delta;
+
+//                         if(new_bucket < old_bucket) {
+//                             buckets[old_bucket].erase(v);
+
+//                             if (buckets.count(new_bucket) == 0) {
+//                                 set<int> new_set;
+//                                 buckets[new_bucket] = new_set;
+//                             }
+//                             buckets[new_bucket].insert(v);
+//                         }
+
+//                         A_prim.insert(v);
+
+//                     }
+                    
+//                 }
+//             }
+
+//             A.clear();
+
+//             set_intersection(A_prim.begin(), A_prim.end(),
+//                           buckets[k].begin(), buckets[k].end(),
+//                           inserter(A, A.begin()));
+//         }
+
+//         buckets[k].clear();
+//     }
+
+//     return d;
+// }
 
 
 
@@ -155,6 +260,9 @@ int main(int argc, char** argv) {
     int v;
     long long w;
 
+    int local_vertex_count = end_vertex - start_vertex + 1;
+    int num_processes = num_vertices/local_vertex_count;
+
     while (infile >> u >> v >> w) {
 
         if (u >= start_vertex && u <= end_vertex) {
@@ -176,10 +284,7 @@ int main(int argc, char** argv) {
     }
     infile.close();
 
-    unordered_map<int, long long> final_values = delta_stepping(my_vertices, global_root);
-
-    std::cout << "Rank " << rank << " has vertices " << start_vertex << " to " << end_vertex 
-              << " and read " << edges.size() << " edges.\n";
+    unordered_map<int, long long> final_values = delta_stepping(my_vertices, global_root, rank, num_processes, local_vertex_count);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
