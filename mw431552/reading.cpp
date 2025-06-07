@@ -123,8 +123,8 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
 
                 for (int i = 0; i < local_vertex_count; i++) {
                     if (local_changed[i] == 1) {
-                            long long old_bucket = local_d_prev[i] / delta;
-                            long long new_bucket = local_d[i] / delta
+                        long long old_bucket = local_d_prev[i] / delta;
+                        long long new_bucket = local_d[i] / delta;
 
                         if (new_bucket < old_bucket) {
                             buckets[old_bucket].erase(i);
