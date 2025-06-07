@@ -626,6 +626,9 @@ int main(int argc, char** argv) {
     int local_vertex_count = end_vertex - start_vertex + 1;
     int num_procs = num_vertices/local_vertex_count;
 
+    cout << "NUMBER OF PROCESSES: "<< num_procs << endl;
+    cout << "LOCAL VERTEX COUNT: "<< local_vertex_count << endl;
+
     while (infile >> u >> v >> w) {
 
         if (u >= start_vertex && u <= end_vertex) {
