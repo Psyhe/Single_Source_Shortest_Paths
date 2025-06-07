@@ -119,7 +119,7 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
 
             MPI_Barrier(MPI_COMM_WORLD);
 
-            if (!local_flag) {
+            if (local_flag) {
 
                 for (int i = 0; i < local_vertex_count; i++) {
                     if (local_changed[i] == 1) {
