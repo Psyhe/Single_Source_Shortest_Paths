@@ -154,6 +154,7 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
     for (int k = 0; k < 20; k++) {
 
         if (buckets.count(k) == 0) {
+            cout << "BUCKET SKIPPED " << k << "; my rank is: " << rank << "\n";
             continue;
         }
 
