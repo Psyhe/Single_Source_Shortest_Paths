@@ -280,7 +280,7 @@ int main(int argc, char** argv) {
             e.v1 = v;
             e.v2 = u;
             e.weight = w;
-            my_vertices[u].edges.push_back(e);
+            my_vertices[v].edges.push_back(e);
         }    
 
     }
