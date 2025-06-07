@@ -110,12 +110,15 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
                                 local_index(v, num_procs), 1, MPI_INT, win_changed);
                         MPI_Win_unlock(owner(v, num_procs), win_changed);
 
-                        local_flag = true;
-
                     }
                 }
             }
 
+            MPI_Barrier(MPI_COMM_WORLD);
+            
+            for (int i = 0; i < local_vertex_count; ++i) {
+                local_flag |= local_changed[i];
+            }
 
             MPI_Barrier(MPI_COMM_WORLD);
 
