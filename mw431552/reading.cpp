@@ -35,93 +35,87 @@ int local_index(int v, int num_procs) {
     return v % num_procs;
 }
 
-unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int local_vertex_count) {    
+unordered_map<int, long long> delta_stepping(
+    unordered_map<int, Vertex> vertex_mapping,
+    int root, int rank, int num_procs, int local_vertex_count
+) {
     vector<long long> local_d(local_vertex_count, INF);
 
-    // Setup MPI Window for local_d
     MPI_Win win;
     MPI_Win_create(local_d.data(), local_vertex_count * sizeof(long long),
                    sizeof(long long), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
 
-
-    set<int> zero_set;
-    set<int> inf_set;
+    // Use lock_all/unlock_all for simpler sync
+    MPI_Win_lock_all(0, win);
 
     unordered_map<long long, set<int>> buckets;
 
+    // Initialize root
     if (owner(root, num_procs) == rank) {
         local_d[local_index(root, num_procs)] = 0;
         buckets[0].insert(root);
     }
 
-    MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
+    const int max_buckets = 1000;
+    int global_active = 1;
 
-    for (int k = 0; k < 20; k++) {
+    for (int k = 0; k < max_buckets; ++k) {
+        int local_active = (buckets.count(k) && !buckets[k].empty()) ? 1 : 0;
 
-        if (buckets.count(k) == 0) {
-            continue;
-        }
+        // Termination check
+        MPI_Allreduce(&local_active, &global_active, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
+        if (!global_active) break;
 
         set<int> A = buckets[k];
+        buckets[k].clear();
 
-        // Process bucket
-        while(!A.empty()){
-            set<int> A_prim;
-            for (int u: A) {
-                Vertex &current_vertex = vertex_mapping[u];
+        while (!A.empty()) {
+            set<int> A_next;
 
-                long long d_u;
-                d_u = local_d[local_index(u, num_procs)];
+            for (int u : A) {
+                if (vertex_mapping.find(u) == vertex_mapping.end()) continue;
 
-                for (Edge e : current_vertex.edges) {
-                    // Relax edge
+                Vertex& current_vertex = vertex_mapping[u];
+                long long d_u = local_d[local_index(u, num_procs)];
+
+                for (const Edge& e : current_vertex.edges) {
                     int v = e.v2;
                     long long w = e.weight;
-                    
+
                     long long d_v;
-                    // Read current d[v]
-                    MPI_Win_lock(MPI_LOCK_SHARED, owner(v, num_procs), 0, win);
-                    MPI_Get(&d_v, 1, MPI_LONG_LONG, owner(v, num_procs),
-                            local_index(v, num_procs), 1, MPI_LONG_LONG, win);
-                    MPI_Win_unlock(owner(v, num_procs), win);
 
+                    // Read remote d[v]
+                    MPI_Get(&d_v, 1, MPI_LONG_LONG,
+                            owner(v, num_procs),
+                            local_index(v, num_procs),
+                            1, MPI_LONG_LONG, win);
+                    MPI_Win_flush(owner(v, num_procs), win);
 
-                    int old_bucket = d_v / delta;
-                    long long old_d = d_v;
-                    long long new_d = min(d_v, d_u + w);
-                    cout << "my rank: " << rank << ",new min updated: " << new_d << endl;
+                    long long new_d = d_u + w;
 
-                    if (new_d < old_d) {
-                        // Update remote d_v
-                        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner(v, num_procs), 0, win);
-                        MPI_Put(&new_d, 1, MPI_LONG_LONG, owner(v, num_procs),
-                                local_index(v, num_procs), 1, MPI_LONG_LONG, win);
-                        MPI_Win_unlock(owner(v, num_procs), win);
+                    if (new_d < d_v) {
+                        // Write new value
+                        MPI_Put(&new_d, 1, MPI_LONG_LONG,
+                                owner(v, num_procs),
+                                local_index(v, num_procs),
+                                1, MPI_LONG_LONG, win);
+                        MPI_Win_flush(owner(v, num_procs), win);
 
+                        // Locally track updates
                         if (owner(v, num_procs) == rank) {
-                            long long old_bucket = d_v / delta;
-                            long long new_bucket = new_d / delta;
-
-                            if (new_bucket < old_bucket) {
-                                buckets[old_bucket].erase(v);
-                                buckets[new_bucket].insert(v);
-                                A_prim.insert(v);
-                            }
+                            local_d[local_index(v, num_procs)] = new_d;
+                            buckets[new_d / delta].insert(v);
+                            A_next.insert(v);
                         }
-
                     }
                 }
             }
 
-            A.clear();
-
-            set_intersection(A_prim.begin(), A_prim.end(),
-                          buckets[k].begin(), buckets[k].end(),
-                          inserter(A, A.begin()));
+            A = A_next;
         }
-
-        buckets[k].clear();
     }
+
+    MPI_Win_unlock_all(win);
     MPI_Win_free(&win);
 
     unordered_map<int, long long> result;
@@ -132,6 +126,105 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
 
     return result;
 }
+
+
+// unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int local_vertex_count) {    
+//     vector<long long> local_d(local_vertex_count, INF);
+
+//     // Setup MPI Window for local_d
+//     MPI_Win win;
+//     MPI_Win_create(local_d.data(), local_vertex_count * sizeof(long long),
+//                    sizeof(long long), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
+
+
+//     set<int> zero_set;
+//     set<int> inf_set;
+
+//     unordered_map<long long, set<int>> buckets;
+
+//     if (owner(root, num_procs) == rank) {
+//         local_d[local_index(root, num_procs)] = 0;
+//         buckets[0].insert(root);
+//     }
+
+//     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
+
+//     for (int k = 0; k < 20; k++) {
+
+//         if (buckets.count(k) == 0) {
+//             continue;
+//         }
+
+//         set<int> A = buckets[k];
+
+//         // Process bucket
+//         while(!A.empty()){
+//             set<int> A_prim;
+//             for (int u: A) {
+//                 Vertex &current_vertex = vertex_mapping[u];
+
+//                 long long d_u;
+//                 d_u = local_d[local_index(u, num_procs)];
+
+//                 for (Edge e : current_vertex.edges) {
+//                     // Relax edge
+//                     int v = e.v2;
+//                     long long w = e.weight;
+                    
+//                     long long d_v;
+//                     // Read current d[v]
+//                     MPI_Win_lock(MPI_LOCK_SHARED, owner(v, num_procs), 0, win);
+//                     MPI_Get(&d_v, 1, MPI_LONG_LONG, owner(v, num_procs),
+//                             local_index(v, num_procs), 1, MPI_LONG_LONG, win);
+//                     MPI_Win_unlock(owner(v, num_procs), win);
+
+
+//                     int old_bucket = d_v / delta;
+//                     long long old_d = d_v;
+//                     long long new_d = min(d_v, d_u + w);
+//                     cout << "my rank: " << rank << ",new min updated: " << new_d << endl;
+
+//                     if (new_d < old_d) {
+//                         // Update remote d_v
+//                         MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner(v, num_procs), 0, win);
+//                         MPI_Put(&new_d, 1, MPI_LONG_LONG, owner(v, num_procs),
+//                                 local_index(v, num_procs), 1, MPI_LONG_LONG, win);
+//                         MPI_Win_unlock(owner(v, num_procs), win);
+
+//                         if (owner(v, num_procs) == rank) {
+//                             long long old_bucket = d_v / delta;
+//                             long long new_bucket = new_d / delta;
+
+//                             if (new_bucket < old_bucket) {
+//                                 buckets[old_bucket].erase(v);
+//                                 buckets[new_bucket].insert(v);
+//                                 A_prim.insert(v);
+//                             }
+//                         }
+
+//                     }
+//                 }
+//             }
+
+//             A.clear();
+
+//             set_intersection(A_prim.begin(), A_prim.end(),
+//                           buckets[k].begin(), buckets[k].end(),
+//                           inserter(A, A.begin()));
+//         }
+
+//         buckets[k].clear();
+//     }
+//     MPI_Win_free(&win);
+
+//     unordered_map<int, long long> result;
+//     for (int i = 0; i < local_vertex_count; ++i) {
+//         int global_id = i * num_procs + rank;
+//         result[global_id] = local_d[i];
+//     }
+
+//     return result;
+// }
 
 
 // unordered_map_seq<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_mapping, int root, int rank) {
@@ -237,6 +330,8 @@ int main(int argc, char** argv) {
     std::string input_file = argv[1];
     std::string output_file = argv[2];
 
+    cout << "My rank is: " << rank << "\n";
+
     std::ifstream infile(input_file);
     if (!infile.is_open()) {
         std::cerr << "Rank " << rank << ": Failed to open input file " << input_file << "\n";
@@ -295,7 +390,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    outfile << "shit 4" << "\n";
+    outfile << "shit 5" << "\n";
 
     // for (int v = start_vertex; v <= end_vertex; ++v) {
     //     outfile << v << " edges:";
