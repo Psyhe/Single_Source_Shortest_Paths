@@ -85,6 +85,7 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
                     long long new_d = min(d_v, d_u + w);
 
                     if (new_d < old_d) {
+                        cout << "Current v is: " << v << endl;
                         MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner(v, num_procs), 0, win_d);
                         MPI_Put(&new_d, 1, MPI_LONG_LONG, owner(v, num_procs),
                                 local_index(v, num_procs), 1, MPI_LONG_LONG, win_d);
