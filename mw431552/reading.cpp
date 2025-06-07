@@ -27,15 +27,39 @@ struct Vertex {
     vector<Edge> edges;
 };
 
-int owner(int v, int num_procs) {
-    return v/num_procs;
+int owner(int vertex, int total_nodes, int num_procs) {
+    int base = total_nodes / num_procs;
+    int remainder = total_nodes % num_procs;
+
+    // The first 'remainder' ranks have (base + 1) vertices
+    int threshold = (base + 1) * remainder;
+
+    if (vertex < threshold) {
+        return vertex / (base + 1);
+    } else {
+        return remainder + (vertex - threshold) / base;
+    }
 }
 
-int local_index(int v, int num_procs) {
-    return v % num_procs;
+int vertices_for_rank(int rank, int total_nodes, int num_procs) {
+    int base = total_nodes / num_procs;
+    int remainder = total_nodes % num_procs;
+
+    // Ranks [0, remainder - 1] get one extra vertex
+    if (rank < remainder) {
+        return base + 1;
+    } else {
+        return base;
+    }
 }
 
-unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int local_vertex_count) {
+
+int local_index(int v, int local_vertex_count) {
+    return v % local_vertex_count;
+}
+
+unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices) {
+    int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
     vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_changed(local_vertex_count, 0);
     vector<long long> local_d_prev(local_vertex_count, INF);
@@ -51,8 +75,8 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
 
     unordered_map<long long, set<int>> buckets;
 
-    if (owner(root, num_procs) == rank) {
-        int li = local_index(root, num_procs);
+    if (owner(root, num_vertices, num_procs) == rank) {
+        int li = local_index(root, local_vertex_count);
         local_d[li] = 0;
         local_d_prev[li] = 0;
         buckets[0].insert(root);
@@ -69,39 +93,39 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
             set<int> A_prim;
             for (int u : A) {
                 Vertex &current_vertex = vertex_mapping[u];
-                long long d_u = local_d[local_index(u, num_procs)];
+                long long d_u = local_d[local_index(u, local_vertex_count)];
 
                 for (Edge e : current_vertex.edges) {
                     int v = e.v2;
                     long long w = e.weight;
 
                     long long d_v;
-                    MPI_Win_lock(MPI_LOCK_SHARED, owner(v, num_procs), 0, win_d);
-                    MPI_Get(&d_v, 1, MPI_LONG_LONG, owner(v, num_procs),
-                            local_index(v, num_procs), 1, MPI_LONG_LONG, win_d);
-                    MPI_Win_unlock(owner(v, num_procs), win_d);
+                    MPI_Win_lock(MPI_LOCK_SHARED, owner(v, num_vertices, num_procs), 0, win_d);
+                    MPI_Get(&d_v, 1, MPI_LONG_LONG, owner(v, num_vertices, num_procs),
+                            local_index(v, local_vertex_count), 1, MPI_LONG_LONG, win_d);
+                    MPI_Win_unlock(owner(v, num_vertices, num_procs), win_d);
 
                     long long old_d = d_v;
                     long long new_d = min(d_v, d_u + w);
 
                     if (new_d < old_d) {
                         cout << "Current v is: " << v << endl;
-                        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner(v, num_procs), 0, win_d);
-                        MPI_Put(&new_d, 1, MPI_LONG_LONG, owner(v, num_procs),
-                                local_index(v, num_procs), 1, MPI_LONG_LONG, win_d);
-                        MPI_Win_flush(owner(v, num_procs), win_d);
-                        MPI_Win_unlock(owner(v, num_procs), win_d);
+                        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner(v, num_vertices, num_procs), 0, win_d);
+                        MPI_Put(&new_d, 1, MPI_LONG_LONG, owner(v, num_vertices, num_procs),
+                                local_index(v, local_vertex_count), 1, MPI_LONG_LONG, win_d);
+                        MPI_Win_flush(owner(v, num_vertices, num_procs), win_d);
+                        MPI_Win_unlock(owner(v, num_vertices, num_procs), win_d);
 
-                        long long updated = 1;
-                        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner(v, num_procs), 0, win_changed);
-                        MPI_Put(&updated, 1, MPI_LONG_LONG, owner(v, num_procs),
-                                local_index(v, num_procs), 1, MPI_LONG_LONG, win_changed);
-                        MPI_Win_flush(owner(v, num_procs), win_changed);
-                        MPI_Win_unlock(owner(v, num_procs), win_changed);
+                        long long updated = 1;x
+                        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner(v,, num_vertices, num_procs), 0, win_changed);
+                        MPI_Put(&updated, 1, MPI_LONG_LONG, owner(v, num_vertices, num_procs),
+                                local_index(v, local_vertex_count), 1, MPI_LONG_LONG, win_changed);
+                        MPI_Win_flush(owner(v, num_vertices, num_procs), win_changed);
+                        MPI_Win_unlock(owner(v, num_vertices, num_procs), win_changed);
 
-                        if (owner(v, num_procs) == rank) {
-                            local_d[local_index(v, num_procs)] = new_d;
-                            local_changed[local_index(v, num_procs)] = 1;
+                        if (owner(v, num_vertices, num_procs) == rank) {
+                            local_d[local_index(v, local_vertex_count)] = new_d;
+                            local_changed[local_index(v, local_vertex_count)] = 1;
                         }
                     }
                 }
@@ -119,7 +143,7 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
                     long long new_bucket = local_d[i] / delta;
 
                     if (new_bucket < old_bucket) {
-                        int global_id = i * num_procs + rank;
+                        int global_id = i * local_vertex_count + rank;
                         buckets[old_bucket].erase(global_id);
                         buckets[new_bucket].insert(global_id);
                         A_prim.insert(global_id);
@@ -149,8 +173,9 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
     MPI_Win_free(&win_changed);
 
     unordered_map<int, long long> result;
+    int starting_point = rank * local_vertex_count;
     for (int i = 0; i < local_vertex_count; ++i) {
-        int global_id = i * num_procs + rank;
+        int global_id = starting_point + i;
         result[global_id] = local_d[i];
     }
 
@@ -586,6 +611,8 @@ int main(int argc, char** argv) {
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    int num_processes;
+    MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
 
     if (argc < 3) {
         if (rank == 0) {
@@ -624,12 +651,6 @@ int main(int argc, char** argv) {
     int v;
     long long w;
 
-    int local_vertex_count = end_vertex - start_vertex + 1;
-    int num_procs = num_vertices/local_vertex_count;
-
-    cout << "NUMBER OF PROCESSES: "<< num_procs << endl;
-    cout << "LOCAL VERTEX COUNT: "<< local_vertex_count << endl;
-
     while (infile >> u >> v >> w) {
 
         if (u >= start_vertex && u <= end_vertex) {
@@ -651,7 +672,7 @@ int main(int argc, char** argv) {
     }
     infile.close();
 
-    unordered_map<int, long long> final_values = delta_stepping(my_vertices, global_root, rank, num_procs, local_vertex_count);
+    unordered_map<int, long long> final_values = delta_stepping(my_vertices, global_root, rank, num_processes, num_vertices);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
