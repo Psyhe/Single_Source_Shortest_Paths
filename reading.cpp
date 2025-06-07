@@ -27,15 +27,15 @@ struct Vertex {
     vector<Edge> edges;
 };
 
-int owner(int v, int num_processes) {
-    return v/num_processes;
+int owner(int v, int num_procs) {
+    return v/num_procs;
 }
 
-int local_index(int v, int num_processes) {
+int local_index(int v, int num_procs) {
     return v % num_procs;
 }
 
-unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_processes, int local_vertex_count) {    
+unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int local_vertex_count) {    
     vector<long long> local_d(local_vertex_count, INF);
 
     // Setup MPI Window for local_d
@@ -90,8 +90,8 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
                     long long old_d = d_v;
                     long long new_d = min(d_v, d_u + w);
 
-                    if (d[u] + w < d[v]) {
-                        // Update remote d[v]
+                    if (new_d < old_d) {
+                        // Update remote d_v
                         MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner(v, num_procs), 0, win);
                         MPI_Put(&new_d, 1, MPI_LONG_LONG, owner(v, num_procs),
                                 local_index(v, num_procs), 1, MPI_LONG_LONG, win);
@@ -248,7 +248,7 @@ int main(int argc, char** argv) {
 
     unordered_map<int, Vertex> my_vertices;
 
-    for (int i = start_vertex, i <= end_vertex; i++) {
+    for (int i = start_vertex; i <= end_vertex; i++) {
         Vertex v;
         v.id = i;
         vector<long long> edges;
@@ -261,7 +261,7 @@ int main(int argc, char** argv) {
     long long w;
 
     int local_vertex_count = end_vertex - start_vertex + 1;
-    int num_processes = num_vertices/local_vertex_count;
+    int num_procs = num_vertices/local_vertex_count;
 
     while (infile >> u >> v >> w) {
 
@@ -284,7 +284,7 @@ int main(int argc, char** argv) {
     }
     infile.close();
 
-    unordered_map<int, long long> final_values = delta_stepping(my_vertices, global_root, rank, num_processes, local_vertex_count);
+    unordered_map<int, long long> final_values = delta_stepping(my_vertices, global_root, rank, num_procs, local_vertex_count);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
