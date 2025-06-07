@@ -300,8 +300,8 @@ int main(int argc, char** argv) {
 
     for (int v = start_vertex; v <= end_vertex; ++v) {
         outfile << v << " edges:";
-        Vertex c = my_vertices[v];
-        for (Edge c: v.edges) {
+        Vertex vertex = my_vertices[v];
+        for (Edge e: vertex.edges) {
             outfile << e.v2 << " w: " << e.weight << ";";
         }
         outfile << "\n";
