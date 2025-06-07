@@ -284,7 +284,7 @@ int main(int argc, char** argv) {
     }
     infile.close();
 
-    // unordered_map<int, long long> final_values = delta_stepping(my_vertices, global_root, rank, num_procs, local_vertex_count);
+    unordered_map<int, long long> final_values = delta_stepping(my_vertices, global_root, rank, num_procs, local_vertex_count);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
@@ -296,9 +296,9 @@ int main(int argc, char** argv) {
 
     outfile << "shit" << "\n";
 
-    // for (int v = start_vertex; v <= end_vertex; ++v) {
-    //     outfile << final_values[v] << "\n";
-    // }
+    for (int v = start_vertex; v <= end_vertex; ++v) {
+        outfile << final_values[v] << "\n";
+    }
     outfile.close();
 
     MPI_Finalize();
