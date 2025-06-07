@@ -112,7 +112,7 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
 
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
-    for (int k = 0; k < 20; k++) {
+    for (int k = 0; k < 1000; k++) {
         bool local_flag = true;
         bool global_flag = true;
         set<int> A = buckets[k];
