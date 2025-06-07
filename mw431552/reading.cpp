@@ -179,10 +179,14 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
                         int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
                         buckets[old_bucket].erase(global_id);
                         buckets[new_bucket].insert(global_id);
-                        A_prim.insert(global_id);
-                        local_d_prev[i] = local_d[i];
-                        local_changed[i] = 0;
                     }
+
+                    if (local_d_prev[i] > local_d[i]) {
+                        A_prim.insert(global_id);
+                    }
+
+                    local_d_prev[i] = local_d[i];
+                    local_changed[i] = 0;
                 }
             }
 
