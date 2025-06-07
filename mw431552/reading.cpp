@@ -147,6 +147,8 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
         buckets[0].insert(root);
     }
 
+    cout << "MY RANK IS: " << rank << "\n";
+
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
     for (int k = 0; k < 20; k++) {
