@@ -116,8 +116,8 @@ unordered_map<int, long long> delta_stepping(unordered_map<int, Vertex> vertex_m
                         MPI_Win_flush(owner(v, num_vertices, num_procs), win_d);
                         MPI_Win_unlock(owner(v, num_vertices, num_procs), win_d);
 
-                        long long updated = 1;x
-                        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner(v,, num_vertices, num_procs), 0, win_changed);
+                        long long updated = 1;
+                        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner(v, num_vertices, num_procs), 0, win_changed);
                         MPI_Put(&updated, 1, MPI_LONG_LONG, owner(v, num_vertices, num_procs),
                                 local_index(v, local_vertex_count), 1, MPI_LONG_LONG, win_changed);
                         MPI_Win_flush(owner(v, num_vertices, num_procs), win_changed);
