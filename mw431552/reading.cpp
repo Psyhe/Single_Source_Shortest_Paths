@@ -255,7 +255,7 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
     MPI_Win_free(&win_changed);
 
     unordered_map<int, long long> result;
-    int starting_point = rank * local_vertex_count;
+    starting_point = rank * local_vertex_count;
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         result[global_id] = local_d[i];
