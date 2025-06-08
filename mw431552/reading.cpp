@@ -252,9 +252,8 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
     long long k = 0;
     bool continue_running = true;
 
-    while (continue_running) {
+    while (continue_running && k < 20) {
         set<int> A = buckets[k];
-
         bool filled_buckets = 0;
         for (const auto& b : buckets) {
             filled_buckets |= (!b.second.empty());
