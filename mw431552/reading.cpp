@@ -851,7 +851,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
         }
 
-        if (true){
+        if (!buckets[k].empty()){
         // if (should_use_pull_model(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight)) {
             //  outer short edge processing
             // process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
