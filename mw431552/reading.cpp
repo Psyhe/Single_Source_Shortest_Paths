@@ -25,6 +25,7 @@ struct Edge {
 struct Vertex {
     int id;
     vector<Edge> edges;
+    int degree;
 };
 
 int owner(int vertex, int total_nodes, int num_procs) {
@@ -440,6 +441,351 @@ unordered_map<int, long long> delta_stepping_IOS(unordered_map<int, Vertex> vert
 }
 
 
+void process_bucket_pull_model(
+    const set<int>& A, unordered_map<int, Vertex>& vertex_mapping,
+    int rank, int num_vertices, int num_procs,
+    vector<long long>& local_d, vector<long long>& local_changed,
+    vector<long long>& local_d_prev,
+    MPI_Win& win_d, MPI_Win& win_changed
+) {
+    for (int u : A) {
+        Vertex& current_vertex = vertex_mapping[u];
+        for (Edge& e : current_vertex.edges) {
+            relax_edge(u, e, rank, num_vertices, num_procs,
+                       vertex_mapping, local_d, local_changed, local_d_prev,
+                       win_d, win_changed);
+        }
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+}
+
+
+bool should_use_pull_model(
+    const set<int>& current_bucket,
+    const unordered_map<int, Vertex>& vertex_mapping,
+    const vector<long long>& local_d,
+    long long k,                // current bucket index
+    double delta,
+    int w_max                   // max edge weight
+) {
+    // Estimate communication cost for push and pull
+    long long push_volume = 0;
+    long long pull_requests = 0;
+
+    // --- Push Volume Estimation: total long edges in current bucket ---
+    for (int u : current_bucket) {
+        auto it = vertex_mapping.find(u);
+        if (it != vertex_mapping.end()) {
+            const Vertex& v = it->second;
+            for (const Edge& e : v.edges) {
+                if (e.weight > delta) {
+                    push_volume++;
+                }
+            }
+        }
+    }
+
+    // --- Pull Volume Estimation: requests from later buckets ---
+    // We assume edge weights are uniformly distributed in [0, w_max]
+    // So, for each vertex v, expected edges in [Δ, d(v) - kΔ - 1] = degree × ((d(v) - (k+1)Δ) / w_max)
+
+    for (const auto& [v_id, vertex] : vertex_mapping) {
+        long long d_v = local_d[local_index(v_id, local_d.size())]; // local_d is local per process
+
+        // Only consider vertices that are *not* in current bucket
+        if ((d_v / delta) > k) {
+            double range_upper = d_v - (k + 1) * delta;
+            if (range_upper > 0) {
+                double fraction = range_upper / w_max;
+                pull_requests += static_cast<long long>(vertex.edges.size() * fraction);
+            }
+        }
+    }
+
+    // Responses ≈ requests (as mentioned in the paper)
+    long long pull_volume = 2 * pull_requests;
+
+    // Compare estimated volumes
+    return pull_volume < push_volume;
+}
+
+
+void process_bucket_outer_short(
+    const set<int>& A, unordered_map<int, Vertex>& vertex_mapping,
+    int rank, int num_vertices, int num_procs,
+    vector<long long>& local_d, vector<long long>& local_changed,
+    vector<long long>& local_d_prev,
+    MPI_Win& win_d, MPI_Win& win_changed
+) {
+    for (int u : A) {
+        Vertex& current_vertex = vertex_mapping[u];
+        for (Edge& e : current_vertex.edges) {
+            if (e.weight < delta) {
+                relax_edge(u, e, rank, num_vertices, num_procs,
+                        vertex_mapping, local_d, local_changed, local_d_prev,
+                        win_d, win_changed);
+            }
+        }
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void pull_model_process_long_edges(
+    long long k,
+    unordered_map<int, Vertex>& vertex_mapping,
+    vector<long long>& local_d,
+    int rank,
+    int num_procs,
+    int num_vertices,
+    int delta
+) {
+    struct PullRequest {
+        int requester_v; // global id of v
+        int u;           // global id of u
+    };
+
+    struct PullResponse {
+        int v;
+        long long d_u;
+        long long weight;
+    };
+
+    // ==================== Build pull requests ====================
+    vector<vector<PullRequest>> requests_to_send(num_procs);
+
+    for (auto& [v, vertex] : vertex_mapping) {
+        long long d_v = local_d[local_index(v, local_d.size())];
+        if ((d_v / delta) > k) {
+            for (auto& edge : vertex.incoming_long_edges) {
+                int u = edge.v1;
+                long long w = edge.weight;
+
+                if (w < d_v - k * delta) { // pruning condition
+                    int owner_u = owner(u, num_vertices, num_procs);
+                    requests_to_send[owner_u].push_back({v, u});
+                }
+            }
+        }
+    }
+
+    // ==================== Exchange pull requests ====================
+    vector<int> send_counts(num_procs), recv_counts(num_procs);
+    vector<int> send_displs(num_procs), recv_displs(num_procs);
+
+    for (int i = 0; i < num_procs; ++i)
+        send_counts[i] = requests_to_send[i].size();
+
+    MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+
+    int total_send = accumulate(send_counts.begin(), send_counts.end(), 0);
+    int total_recv = accumulate(recv_counts.begin(), recv_counts.end(), 0);
+
+    vector<PullRequest> flat_send_buf(total_send);
+    vector<PullRequest> flat_recv_buf(total_recv);
+
+    int offset = 0;
+    for (int i = 0; i < num_procs; ++i) {
+        send_displs[i] = offset;
+        copy(requests_to_send[i].begin(), requests_to_send[i].end(), flat_send_buf.begin() + offset);
+        offset += send_counts[i];
+    }
+
+    recv_displs[0] = 0;
+    for (int i = 1; i < num_procs; ++i)
+        recv_displs[i] = recv_displs[i - 1] + recv_counts[i - 1];
+
+    MPI_Alltoallv(
+        flat_send_buf.data(), send_counts.data(), send_displs.data(), MPI_2INT,
+        flat_recv_buf.data(), recv_counts.data(), recv_displs.data(), MPI_2INT,
+        MPI_COMM_WORLD
+    );
+
+    // ==================== Process pull requests and respond ====================
+    vector<vector<PullResponse>> responses_to_send(num_procs);
+
+    for (const auto& req : flat_recv_buf) {
+        int v = req.requester_v;
+        int u = req.u;
+
+        if (vertex_mapping.count(u)) {
+            long long d_u = local_d[local_index(u, local_d.size())];
+            if ((d_u / delta) == k) {
+                for (Edge& e : vertex_mapping[u].edges) {
+                    if (e.v2 == v) {
+                        int owner_v = owner(v, num_vertices, num_procs);
+                        responses_to_send[owner_v].push_back({v, d_u, e.weight});
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // ==================== Exchange pull responses ====================
+    for (int i = 0; i < num_procs; ++i)
+        send_counts[i] = responses_to_send[i].size();
+
+    MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+
+    total_send = accumulate(send_counts.begin(), send_counts.end(), 0);
+    total_recv = accumulate(recv_counts.begin(), recv_counts.end(), 0);
+
+    vector<PullResponse> flat_resp_send_buf(total_send);
+    vector<PullResponse> flat_resp_recv_buf(total_recv);
+
+    offset = 0;
+    for (int i = 0; i < num_procs; ++i) {
+        send_displs[i] = offset;
+        copy(responses_to_send[i].begin(), responses_to_send[i].end(), flat_resp_send_buf.begin() + offset);
+        offset += send_counts[i];
+    }
+
+    recv_displs[0] = 0;
+    for (int i = 1; i < num_procs; ++i)
+        recv_displs[i] = recv_displs[i - 1] + recv_counts[i - 1];
+
+    MPI_Datatype MPI_PULL_RESP;
+    MPI_Type_contiguous(3, MPI_LONG_LONG, &MPI_PULL_RESP);
+    MPI_Type_commit(&MPI_PULL_RESP);
+
+    MPI_Alltoallv(
+        flat_resp_send_buf.data(), send_counts.data(), send_displs.data(), MPI_PULL_RESP,
+        flat_resp_recv_buf.data(), recv_counts.data(), recv_displs.data(), MPI_PULL_RESP,
+        MPI_COMM_WORLD
+    );
+
+    // ==================== Apply updates from responses ====================
+    for (const auto& resp : flat_resp_recv_buf) {
+        int v = resp.v;
+        long long d_u = resp.d_u;
+        long long w = resp.weight;
+        int local_idx = local_index(v, local_d.size());
+        long long& d_v = local_d[local_idx];
+        d_v = min(d_v, d_u + w);
+    }
+
+    MPI_Type_free(&MPI_PULL_RESP);
+}
+
+
+unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices, long long local_max_weight) {
+    int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
+    vector<long long> local_d(local_vertex_count, INF * delta);
+    vector<long long> local_changed(local_vertex_count, 0);
+    vector<long long> local_d_prev(local_vertex_count, INF * delta);
+
+    long long real_max_weight;
+    MPI_Allreduce(&local_max_weight, &real_max_weight, 1, MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
+
+    // Setup MPI Windows
+    MPI_Win win_d, win_changed;
+
+    MPI_Win_create(local_d.data(), local_vertex_count * sizeof(long long),
+                   sizeof(long long), MPI_INFO_NULL, MPI_COMM_WORLD, &win_d);
+
+    MPI_Win_create(local_changed.data(), local_vertex_count * sizeof(long long),
+                   sizeof(long long), MPI_INFO_NULL, MPI_COMM_WORLD, &win_changed);
+
+    unordered_map<long long, set<int>> buckets;
+
+    int starting_point = rank * local_vertex_count;
+    for (int i = 0; i < local_vertex_count; ++i) {
+        int global_id = starting_point + i;
+        if (global_id != root) {
+            buckets[INF].insert(global_id);
+        }
+    }
+
+    if (owner(root, num_vertices, num_procs) == rank) {
+        int li = local_index(root, local_vertex_count);
+        local_d[li] = 0;
+        local_d_prev[li] = 0;
+        buckets[0].insert(root);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
+
+    long long k = 0;
+    bool continue_running = true;
+
+    while (continue_running) {
+        set<int> A = buckets[k];
+
+        bool filled_buckets = 0;
+        for (const auto& b : buckets) {
+            filled_buckets |= (!b.second.empty());
+        }
+
+        MPI_Allreduce(&filled_buckets, &continue_running, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+        if (!continue_running) break;
+
+        bool local_flag = true, global_flag = true;
+
+        while (global_flag) {
+            process_bucket_outer_short(A, vertex_mapping, rank, num_vertices, num_procs,
+                        local_d, local_changed, local_d_prev, win_d, win_changed);
+
+            set<int> A_prim = update_buckets_and_collect_active_set(
+                local_d, local_changed, local_d_prev, buckets,
+                rank, num_vertices, num_procs, k
+            );
+
+            A.clear();
+            set_intersection(A_prim.begin(), A_prim.end(), buckets[k].begin(), buckets[k].end(),
+                            inserter(A, A.begin()));
+
+            local_flag = !A.empty();
+            MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+        }
+
+        if (true){
+        // if (should_use_pull_model(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight)) {
+            //  outer short edge processing
+            // process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
+            //     local_d, local_changed, local_d_prev, win_d, win_changed);
+            
+            cout << "I am in pull model" << endl;
+            pull_model_process_long_edges(k, vertex_mapping, local_d, rank, num_procs, num_vertices, delta);
+        }
+        else {
+            // Default way
+            process_bucket(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
+                local_d, local_changed, local_d_prev, win_d, win_changed);
+
+            set<int> A_prim = update_buckets_and_collect_active_set(
+                local_d, local_changed, local_d_prev, buckets,
+                rank, num_vertices, num_procs, k
+            );
+        }
+
+        // buckets[k].clear();
+        k += 1;
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+
+    MPI_Win_free(&win_d);
+    MPI_Win_free(&win_changed);
+
+    unordered_map<int, long long> result;
+    starting_point = rank * local_vertex_count;
+    for (int i = 0; i < local_vertex_count; ++i) {
+        int global_id = starting_point + i;
+        result[global_id] = local_d[i];
+    }
+
+    return result;
+}
+
+long long update_weight(long long current_max, long long potential) {
+    if (current_max >= potential) {
+        return current_max;
+    }
+    else {
+        return potential;
+    }
+}
 
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
@@ -485,6 +831,7 @@ int main(int argc, char** argv) {
     int u;
     int v;
     long long w;
+    long long max_weight = 0;
 
     while (infile >> u >> v >> w) {
 
@@ -494,6 +841,8 @@ int main(int argc, char** argv) {
             e.v2 = v;
             e.weight = w;
             my_vertices[u].edges.push_back(e);
+            // wystarczy tylko w 1 stronę krawedz
+            max_weight = update_weight(max_weight, w);
         }
 
         if (v >= start_vertex && v <= end_vertex) {
@@ -507,8 +856,13 @@ int main(int argc, char** argv) {
     }
     infile.close();
 
+    for (int i = start_vertex; i <= end_vertex; i++) {
+        my_vertices[i].degree = my_vertices[i].edges.size();
+    }
+
     cout << "Processing with IOS" << endl;
-    unordered_map<int, long long> final_values = delta_stepping_basic(my_vertices, global_root, rank, num_processes, num_vertices);
+    // unordered_map<int, long long> final_values = delta_stepping_basic(my_vertices, global_root, rank, num_processes, num_vertices);
+    unordered_map<int, long long> final_values = delta_stepping_prunning(my_vertices, global_root, rank, num_processes, num_vertices, max_weight);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
