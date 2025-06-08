@@ -219,7 +219,7 @@ set<int> update_set_and_collect_active(
             local_changed[i] = 0;
 
             cout << "Inside update current set" << endl;
-            for (int &it: current_set) {
+            for (int it: current_set) {
                 cout << it << " ";
             }
             cout << endl;
