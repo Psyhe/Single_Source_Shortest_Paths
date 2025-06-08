@@ -993,7 +993,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
         MPI_Barrier(MPI_COMM_WORLD);
 
         MPI_Allreduce(&local_processed_vertices, &total_processed_vertices, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
-        cout << "Here I am at rank" << rank <<" my k is: " << k << endl;
+        // cout << "Here I am at rank" << rank <<" my k is: " << k << endl;
 
         buckets[k].clear();
         k += 1;
