@@ -821,7 +821,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
     long long k = 0;
     bool continue_running = true;
 
-    while (continue_running) {
+    while (continue_running && k < 30) {
         set<int> A = buckets[k];
 
         bool filled_buckets = 0;
@@ -851,7 +851,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
         }
 
-        if (!buckets[k].empty()){
+        if (true){
         // if (should_use_pull_model(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight)) {
             //  outer short edge processing
             // process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
