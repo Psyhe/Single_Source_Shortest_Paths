@@ -318,7 +318,7 @@ void process_bucket_first_phase_IOS(
         Vertex& current_vertex = vertex_mapping[u];
         for (Edge& e : current_vertex.edges) {
             if (e.weight < delta) {
-                relax_edge(u, e, rank, num_vertices, num_procs,
+                relax_edge_IOS(u, e, rank, num_vertices, num_procs,
                         vertex_mapping, local_d, local_changed, local_d_prev,
                         win_d, win_changed, k);
             }
