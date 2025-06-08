@@ -278,7 +278,7 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
             set_intersection(A_prim.begin(), A_prim.end(), buckets[k].begin(), buckets[k].end(),
                             inserter(A, A.begin()));
 
-            cout << "A_prim rank: " << rank << " set size: " << buckets[k].size()  << endl;
+            cout << "A_prim rank: " << rank << " set size: " << A_prim.size()  << endl;
             for (auto &it: A_prim) {
                 cout << it << " ";
             }
@@ -298,6 +298,8 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
             cout << endl;
 
             local_flag = !(A.size() == 0);
+            cout << "Local flag: " << local_flag << "rank: " << rank << " set size: " << A.size()  <<endl;
+            cout<< "Current k: " << k << endl;
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
         }
 
