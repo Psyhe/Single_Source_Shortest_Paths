@@ -8,6 +8,7 @@
 #include <set>
 #include <unordered_map>
 #include <algorithm>
+#include <numeric>
 
 
 using namespace std;
@@ -555,11 +556,13 @@ void pull_model_process_long_edges(
     // ==================== Build pull requests ====================
     vector<vector<PullRequest>> requests_to_send(num_procs);
 
-    for (auto& [v, vertex] : vertex_mapping) {
+    for (auto& it: vertex_mapping) {
+        Vertex vertex = it.second;
+        int v = it.first;
         long long d_v = local_d[local_index(v, local_d.size())];
         if ((d_v / delta) > k) {
-            for (auto& edge : vertex.incoming_long_edges) {
-                int u = edge.v1;
+            for (auto& edge : vertex.edges) {
+                int u = edge.v2;
                 long long w = edge.weight;
 
                 if (w < d_v - k * delta) { // pruning condition
