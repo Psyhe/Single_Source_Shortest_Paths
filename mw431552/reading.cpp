@@ -271,6 +271,7 @@ void relax_edge_IOS(
     vector<long long>& local_d_prev,
     MPI_Win& win_d, MPI_Win& win_changed, long long k
 ) {
+    cout << "relax IOS" << endl;
     int local_vertex_count = local_d.size();
     long long d_u = local_d[local_index(u, local_vertex_count)];
 
@@ -287,7 +288,7 @@ void relax_edge_IOS(
 
     long long new_d = min(d_v, d_u + w);
 
-    if ((new_d < d_v)) { //&& (new_d <= ((k+1) * delta - 1))) {
+    if ((new_d < d_v) && (new_d <= ((k+1) * delta - 1))) {
         MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0, win_d);
         MPI_Put(&new_d, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_d);
         MPI_Win_flush(owner_rank, win_d);
@@ -319,7 +320,7 @@ void process_bucket_first_phase_IOS(
             if (e.weight < delta) {
                 relax_edge(u, e, rank, num_vertices, num_procs,
                         vertex_mapping, local_d, local_changed, local_d_prev,
-                        win_d, win_changed);
+                        win_d, win_changed, k);
             }
         }
     }
