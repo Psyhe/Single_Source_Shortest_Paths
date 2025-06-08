@@ -12,7 +12,7 @@
 
 using namespace std;
 
-const int INF = 1e9;
+const long long INF = 1e18;
 int global_root = 0;
 
 int delta = 4; // TODO fine-tune
