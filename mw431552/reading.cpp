@@ -966,7 +966,11 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
         k += 1;
         MPI_Barrier(MPI_COMM_WORLD);
 
+        cout << "HERE" << endl;
+
         if (total_processed_vertices > (tau * num_vertices)) {
+            cout << "Tau" << endl;
+
             // process everything from other buckets at once;
             A.clear();
 
