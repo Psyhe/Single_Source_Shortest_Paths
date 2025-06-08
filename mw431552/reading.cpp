@@ -298,20 +298,29 @@ void relax_edge_IOS(
     long long new_d = min(d_v, d_u + w);
 
     if ((new_d < d_v) && (new_d <= ((k+1) * delta - 1))) {
+        // Take exclusive lock, re-check condition, then write
         MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0, win_d);
-        MPI_Put(&new_d, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_d);
+        long long current_dv;
+        MPI_Get(&current_dv, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_d);
         MPI_Win_flush(owner_rank, win_d);
+
+        if (new_d < current_dv) {
+            MPI_Put(&new_d, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_d);
+            MPI_Win_flush(owner_rank, win_d);
+        }
         MPI_Win_unlock(owner_rank, win_d);
 
-        long long updated = 1;
-        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0, win_changed);
-        MPI_Put(&updated, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_changed);
-        MPI_Win_flush(owner_rank, win_changed);
-        MPI_Win_unlock(owner_rank, win_changed);
+        if (new_d < current_dv) {
+            long long updated = 1;
+            MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0, win_changed);
+            MPI_Put(&updated, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_changed);
+            MPI_Win_flush(owner_rank, win_changed);
+            MPI_Win_unlock(owner_rank, win_changed);
 
-        if (owner_rank == rank) {
-            local_d[local_idx] = new_d;
-            local_changed[local_idx] = 1;
+            if (owner_rank == rank) {
+                local_d[local_idx] = new_d;
+                local_changed[local_idx] = 1;
+            }
         }
     }
 }
@@ -499,7 +508,7 @@ int main(int argc, char** argv) {
     infile.close();
 
     cout << "Processing with IOS" << endl;
-    unordered_map<int, long long> final_values = delta_stepping_basic(my_vertices, global_root, rank, num_processes, num_vertices);
+    unordered_map<int, long long> final_values = delta_stepping_IOS(my_vertices, global_root, rank, num_processes, num_vertices);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
