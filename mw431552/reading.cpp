@@ -560,34 +560,34 @@ void pull_model_process_long_edges(
     int num_vertices,
     int delta
 ) {
-
-    // ==================== Build pull requests ====================
+    // ==================== Step 1: Build Pull Requests ====================
+    cout << "Step 1: Build Pull Requests: " << rank << endl;
     vector<vector<PullRequest>> requests_to_send(num_procs);
 
-    for (auto& it: vertex_mapping) {
-        Vertex vertex = it.second;
-        int v = vertex.id;
-        long long d_v = local_d[local_index(v, local_d.size())];
+    for (const auto& [id, vertex] : vertex_mapping) {
+        long long d_v = local_d[local_index(vertex.id, local_d.size())];
         if ((d_v / delta) > k) {
-            for (auto& edge : vertex.edges) {
+            for (const auto& edge : vertex.edges) {
                 int u = edge.v2;
                 long long w = edge.weight;
 
-                if (w < d_v - k * delta) { // pruning condition
+                if (w < d_v - k * delta) {  // pruning condition
                     int owner_u = owner(u, num_vertices, num_procs);
-                    requests_to_send[owner_u].push_back({v, u});
+                    requests_to_send[owner_u].push_back({vertex.id, u});
                 }
             }
         }
     }
 
-    // ==================== Exchange pull requests ====================
+    // ==================== Step 2: Exchange Pull Requests ====================
+        cout << "Step 2: Exchange Pull Requests: " << rank << endl;
+        cout<< "Current k: " << k << " for rank: " << rank << endl;
+
     vector<int> send_counts(num_procs), recv_counts(num_procs);
     vector<int> send_displs(num_procs), recv_displs(num_procs);
 
-    for (int i = 0; i < num_procs; ++i) {
+    for (int i = 0; i < num_procs; ++i)
         send_counts[i] = requests_to_send[i].size();
-    }
 
     MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
@@ -614,7 +614,9 @@ void pull_model_process_long_edges(
         MPI_COMM_WORLD
     );
 
-    // ==================== Process pull requests and respond ====================
+    // ==================== Step 3: Process Pull Requests ====================
+    cout << "Step 3: Process Pull Requests: " << rank << endl;
+
     vector<vector<PullResponse>> responses_to_send(num_procs);
 
     for (const auto& req : flat_recv_buf) {
@@ -624,7 +626,7 @@ void pull_model_process_long_edges(
         if (vertex_mapping.count(u)) {
             long long d_u = local_d[local_index(u, local_d.size())];
             if ((d_u / delta) == k) {
-                for (Edge& e : vertex_mapping[u].edges) {
+                for (const Edge& e : vertex_mapping[u].edges) {
                     if (e.v2 == v) {
                         int owner_v = owner(v, num_vertices, num_procs);
                         responses_to_send[owner_v].push_back({v, d_u, e.weight});
@@ -635,7 +637,9 @@ void pull_model_process_long_edges(
         }
     }
 
-    // ==================== Exchange pull responses ====================
+    cout << "Step 4: Exchange Pull Responses: " << rank << " current k: " << k << endl;
+
+    // ==================== Step 4: Exchange Pull Responses ====================
     for (int i = 0; i < num_procs; ++i)
         send_counts[i] = responses_to_send[i].size();
 
@@ -658,8 +662,23 @@ void pull_model_process_long_edges(
     for (int i = 1; i < num_procs; ++i)
         recv_displs[i] = recv_displs[i - 1] + recv_counts[i - 1];
 
+    // Correct MPI datatype for PullResponse (int, long long, long long)
     MPI_Datatype MPI_PULL_RESP;
-    MPI_Type_contiguous(3, MPI_LONG_LONG, &MPI_PULL_RESP);
+    int lengths[3] = {1, 1, 1};
+    MPI_Aint displs[3];
+    MPI_Datatype types[3] = {MPI_INT, MPI_LONG_LONG, MPI_LONG_LONG};
+
+    PullResponse dummy;
+    MPI_Aint base;
+    MPI_Get_address(&dummy, &base);
+    MPI_Get_address(&dummy.v, &displs[0]);
+    MPI_Get_address(&dummy.d_u, &displs[1]);
+    MPI_Get_address(&dummy.weight, &displs[2]);
+
+    for (int i = 0; i < 3; ++i)
+        displs[i] -= base;
+
+    MPI_Type_create_struct(3, lengths, displs, types, &MPI_PULL_RESP);
     MPI_Type_commit(&MPI_PULL_RESP);
 
     MPI_Alltoallv(
@@ -668,19 +687,24 @@ void pull_model_process_long_edges(
         MPI_COMM_WORLD
     );
 
-    // ==================== Apply updates from responses ====================
+    MPI_Type_free(&MPI_PULL_RESP);
+
+    cout << " Step 5: Apply Responses: " << rank << " current k: " << k << endl;
+    // ==================== Step 5: Apply Responses ====================
     for (const auto& resp : flat_resp_recv_buf) {
         int v = resp.v;
         long long d_u = resp.d_u;
         long long w = resp.weight;
+
         int local_idx = local_index(v, local_d.size());
         long long& d_v = local_d[local_idx];
-        d_v = min(d_v, d_u + w);
-        local_d[local_idx] = d_v;
-        local_changed[local_idx] = 1;
-    }
+        long long new_d = d_u + w;
 
-    MPI_Type_free(&MPI_PULL_RESP);
+        if (new_d < d_v) {
+            local_d[local_idx] = new_d;
+            local_changed[local_idx] = 1;
+        }
+    }
 }
 
 
@@ -760,7 +784,6 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
             // process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
             //     local_d, local_changed, local_d_prev, win_d, win_changed);
             
-            cout << "I am in pull model" << endl;
             pull_model_process_long_edges(k, vertex_mapping, local_d, local_changed, rank, num_procs, num_vertices, delta);
             
             MPI_Barrier(MPI_COMM_WORLD);
