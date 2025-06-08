@@ -277,28 +277,28 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
             set_intersection(A_prim.begin(), A_prim.end(), buckets[k].begin(), buckets[k].end(),
                             inserter(A, A.begin()));
 
-            cout << "A_prim rank: " << rank << " set size: " << A_prim.size()  << endl;
-            for (auto &it: A_prim) {
-                cout << it << " ";
-            }
-            cout << endl;
+            // cout << "A_prim rank: " << rank << " set size: " << A_prim.size()  << endl;
+            // for (auto &it: A_prim) {
+            //     cout << it << " ";
+            // }
+            // cout << endl;
 
 
-            cout << "buckets rank: " << rank << " set size: " << buckets[k].size()  <<endl;
-            for (auto &it: buckets[k]) {
-                cout << it << " ";
-            }
-            cout << endl;
+            // cout << "buckets rank: " << rank << " set size: " << buckets[k].size()  <<endl;
+            // for (auto &it: buckets[k]) {
+            //     cout << it << " ";
+            // }
+            // cout << endl;
 
-            cout << "A rank: " << rank << " set size: " << A.size()  <<endl;
-            for (auto &it: A) {
-                cout << it << " ";
-            }
-            cout << endl;
+            // cout << "A rank: " << rank << " set size: " << A.size()  <<endl;
+            // for (auto &it: A) {
+            //     cout << it << " ";
+            // }
+            // cout << endl;
 
             local_flag = !(A.size() == 0);
-            cout << "Local flag: " << local_flag << "rank: " << rank << " set size: " << A.size()  <<endl;
-            cout<< "Current k: " << k << endl;
+            // cout << "Local flag: " << local_flag << "rank: " << rank << " set size: " << A.size()  <<endl;
+            // cout<< "Current k: " << k << endl;
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
         }
 
@@ -310,14 +310,14 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
     MPI_Win_free(&win_d);
     MPI_Win_free(&win_changed);
 
-    cout << "rank: " << rank << endl;
-    for (auto &it: buckets) {
-        cout << "k" << it.first << endl;
-        for (auto &it1: buckets[it.first]) {
-            cout << it1 << " ";
-        }
-    }
-    cout << endl;
+    // cout << "rank: " << rank << endl;
+    // for (auto &it: buckets) {
+    //     cout << "k" << it.first << endl;
+    //     for (auto &it1: buckets[it.first]) {
+    //         cout << it1 << " ";
+    //     }
+    // }
+    // cout << endl;
 
     unordered_map<int, long long> result;
     starting_point = rank * local_vertex_count;
