@@ -731,7 +731,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
         bool local_flag = true, global_flag = true;
 
         while (global_flag) {
-            process_bucket_outer_short(A, vertex_mapping, rank, num_vertices, num_procs,
+            process_bucket_first_phase_IOS(A, vertex_mapping, rank, num_vertices, num_procs,
                         local_d, local_changed, local_d_prev, win_d, win_changed);
 
             set<int> A_prim = update_buckets_and_collect_active_set(
