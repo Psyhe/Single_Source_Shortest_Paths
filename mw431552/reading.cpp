@@ -981,6 +981,14 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
             }
 
             while (global_flag) {
+
+                if (rank == 2) {
+                                 cout << "Result.size: " << result.size() << " rank: " << rank << endl;
+                    for (int v: result) {
+                        cout << v << " ";
+                    }
+                    cout << endl;
+                }
                 set<int> current = result;
                 process_bucket(current, vertex_mapping, rank, num_vertices, num_procs,
                             local_d, local_changed, local_d_prev, win_d, win_changed);
@@ -996,7 +1004,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                 
                 MPI_Barrier(MPI_COMM_WORLD);
 
-                if (rank == 1) {
+                if (rank == 2) {
                                  cout << "Result.size: " << result.size() << " rank: " << rank << endl;
                     for (int i = 0; i< local_vertex_count; i++){
                         cout <<local_changed[i] << " ";
