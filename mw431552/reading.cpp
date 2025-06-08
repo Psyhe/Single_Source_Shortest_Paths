@@ -316,11 +316,11 @@ void process_bucket_first_phase_IOS(
     for (int u : A) {
         Vertex& current_vertex = vertex_mapping[u];
         for (Edge& e : current_vertex.edges) {
-            // if (e.weight < delta) {
+            if (e.weight < delta) {
                 relax_edge(u, e, rank, num_vertices, num_procs,
                         vertex_mapping, local_d, local_changed, local_d_prev,
                         win_d, win_changed);
-            //}
+            }
         }
     }
 
@@ -394,8 +394,7 @@ unordered_map<int, long long> delta_stepping_IOS(unordered_map<int, Vertex> vert
             local_flag = !A.empty();
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
         }
-
-        process_bucket(A, vertex_mapping, rank, num_vertices, num_procs,
+        process_bucket(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
                         local_d, local_changed, local_d_prev, win_d, win_changed);
         
         set<int> A_prim = update_buckets_and_collect_active_set(
