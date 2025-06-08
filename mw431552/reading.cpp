@@ -197,7 +197,6 @@ set<int> update_set_and_collect_active(
 ) {
     set<int> A_prim;
     int local_vertex_count = local_d.size();
-    cout << "I AM HERE" << rank << endl;
 
     for (int i = 0; i < local_vertex_count; i++) {
         if (local_changed[i] == 1) {
@@ -966,11 +965,8 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
         k += 1;
         MPI_Barrier(MPI_COMM_WORLD);
 
-        cout << "HERE" << endl;
 
         if (total_processed_vertices > (tau * num_vertices)) {
-            cout << "Tau" << endl;
-
             // process everything from other buckets at once;
             A.clear();
 
@@ -985,8 +981,8 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
             }
 
             while (global_flag) {
-                A = result;
-                process_bucket(A, vertex_mapping, rank, num_vertices, num_procs,
+                set<int> current = result;
+                process_bucket(current, vertex_mapping, rank, num_vertices, num_procs,
                             local_d, local_changed, local_d_prev, win_d, win_changed);
 
                 set<int> A_prim = update_set_and_collect_active(
@@ -994,11 +990,18 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                     rank, num_vertices, num_procs
                 );
 
-                A.clear();
-                set_intersection(A_prim.begin(), A_prim.end(), A.begin(), A.end(),
+                result.clear();
+                set_intersection(A_prim.begin(), A_prim.end(), current.begin(), current.end(),
                                 inserter(result, result.begin()));
 
-                cout << "Result.size: " << result.size() << " rank: " << rank << endl;
+
+                if (rank == 3) {
+                                 cout << "Result.size: " << result.size() << " rank: " << rank << endl;
+                    for (int i = 0; i< local_vertex_count; i++){
+                        cout <<local_changed[i] << " ";
+                    }
+                    cout << endl;
+                }
                 local_flag = !result.empty();
                 MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
             }
