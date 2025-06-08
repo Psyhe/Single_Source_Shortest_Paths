@@ -15,6 +15,7 @@ using namespace std;
 
 const long long INF = 1e18;
 int global_root = 0;
+const double tau = 0.4;
 
 int delta = 4; // TODO fine-tune
 
@@ -176,6 +177,30 @@ set<int> update_buckets_and_collect_active_set(
                 buckets[old_bucket].erase(global_id);
                 buckets[new_bucket].insert(global_id);
             }
+
+            if (local_d_prev[i] > local_d[i]) {
+                A_prim.insert(global_id);
+            }
+
+            local_d_prev[i] = local_d[i];
+            local_changed[i] = 0;
+        }
+    }
+
+    return A_prim;
+}
+
+set<int> update_set_and_collect_active(
+    vector<long long>& local_d, vector<long long>& local_changed,
+    vector<long long>& local_d_prev,
+    int rank, int num_vertices, int num_procs
+) {
+    set<int> A_prim;
+    int local_vertex_count = local_d.size();
+
+    for (int i = 0; i < local_vertex_count; i++) {
+        if (local_changed[i] == 1) {
+            int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
 
             if (local_d_prev[i] > local_d[i]) {
                 A_prim.insert(global_id);
@@ -831,6 +856,160 @@ long long update_weight(long long current_max, long long potential) {
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices) {
+    int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
+    vector<long long> local_d(local_vertex_count, INF * delta);
+    vector<long long> local_changed(local_vertex_count, 0);
+    vector<long long> local_d_prev(local_vertex_count, INF * delta);
+
+    // Setup MPI Windows
+    MPI_Win win_d, win_changed;
+
+    MPI_Win_create(local_d.data(), local_vertex_count * sizeof(long long),
+                   sizeof(long long), MPI_INFO_NULL, MPI_COMM_WORLD, &win_d);
+
+    MPI_Win_create(local_changed.data(), local_vertex_count * sizeof(long long),
+                   sizeof(long long), MPI_INFO_NULL, MPI_COMM_WORLD, &win_changed);
+
+    unordered_map<long long, set<int>> buckets;
+
+    int starting_point = rank * local_vertex_count;
+    for (int i = 0; i < local_vertex_count; ++i) {
+        int global_id = starting_point + i;
+        if (global_id != root) {
+            buckets[INF].insert(global_id);
+        }
+    }
+
+    if (owner(root, num_vertices, num_procs) == rank) {
+        int li = local_index(root, local_vertex_count);
+        local_d[li] = 0;
+        local_d_prev[li] = 0;
+        buckets[0].insert(root);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
+
+    long long k = 0;
+    bool continue_running = true;
+
+    long long local_processed_vertices = 0;
+    long long total_processed_vertices = 0;
+
+    while (continue_running) {
+        set<int>  set_of_processed_vertices;
+        set<int> A = buckets[k];
+
+        bool filled_buckets = 0;
+        for (const auto& b : buckets) {
+            filled_buckets |= (!b.second.empty());
+        }
+
+        MPI_Allreduce(&filled_buckets, &continue_running, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+        if (!continue_running) break;
+
+        bool local_flag = true, global_flag = true;
+
+        while (global_flag) {
+            // All vertices in A will be processed within this bucket
+            set_of_processed.insert(A.begin(), A.end());
+
+            process_bucket(A, vertex_mapping, rank, num_vertices, num_procs,
+                        local_d, local_changed, local_d_prev, win_d, win_changed);
+
+            set<int> A_prim = update_buckets_and_collect_active_set(
+                local_d, local_changed, local_d_prev, buckets,
+                rank, num_vertices, num_procs, k
+            );
+
+            A.clear();
+            set_intersection(A_prim.begin(), A_prim.end(), buckets[k].begin(), buckets[k].end(),
+                            inserter(A, A.begin()));
+
+            local_flag = !A.empty();
+            MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+        }
+
+        local_processed_vertices+= set_of_processed.size();
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        MPI_Allreduce(&local_processed_vertices, &total_processed_vertices, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+
+        buckets[k].clear();
+        k += 1;
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        if (total_processed_vertices > (tau * num_vertices)) {
+            // process everything from other buckets at once;
+            A.clear();
+
+            set<int> result;
+
+            for (auto& it : buckets) {
+                long long key = it.first;
+                if (key >= k) {
+                    result.insert(value_set.begin(), value_set.end());
+                }
+            }
+
+            while (global_flag) {
+                A = result;
+                process_bucket(A, vertex_mapping, rank, num_vertices, num_procs,
+                            local_d, local_changed, local_d_prev, win_d, win_changed);
+
+                set<int> A_prim = update_set_and_collect_active(
+                    local_d, local_changed, local_d_prev,
+                    rank, num_vertices, num_procs
+                );
+
+                A.clear();
+                set_intersection(A_prim.begin(), A_prim.end(), A.begin(), A.end(),
+                                inserter(result, result.begin()));
+
+                local_flag = !result.empty();
+                MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+            }
+            break;
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+
+    MPI_Win_free(&win_d);
+    MPI_Win_free(&win_changed);
+
+    unordered_map<int, long long> result;
+    starting_point = rank * local_vertex_count;
+    for (int i = 0; i < local_vertex_count; ++i) {
+        int global_id = starting_point + i;
+        result[global_id] = local_d[i];
+    }
+
+    return result;
+}
+
 int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
 
@@ -906,7 +1085,8 @@ int main(int argc, char** argv) {
 
     cout << "Processing with IOS" << endl;
     // unordered_map<int, long long> final_values = delta_stepping_basic(my_vertices, global_root, rank, num_processes, num_vertices);
-    unordered_map<int, long long> final_values = delta_stepping_prunning(my_vertices, global_root, rank, num_processes, num_vertices, max_weight);
+    // unordered_map<int, long long> final_values = delta_stepping_prunning(my_vertices, global_root, rank, num_processes, num_vertices, max_weight);
+    unordered_map<int, long long> final_values = delta_stepping_hybrid(my_vertices, global_root, rank, num_processes, num_vertices);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
