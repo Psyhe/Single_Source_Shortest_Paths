@@ -320,7 +320,7 @@ void process_bucket_first_phase_IOS(
                 relax_edge(u, e, rank, num_vertices, num_procs,
                         vertex_mapping, local_d, local_changed, local_d_prev,
                         win_d, win_changed);
-            }
+            //}
         }
     }
 
