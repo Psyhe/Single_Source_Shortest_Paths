@@ -821,7 +821,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
     long long k = 0;
     bool continue_running = true;
 
-    while (continue_running && k < 30) {
+    while (continue_running && k < 100) {
         set<int> A = buckets[k];
 
         bool filled_buckets = 0;
