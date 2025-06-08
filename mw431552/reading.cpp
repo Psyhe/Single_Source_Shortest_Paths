@@ -192,7 +192,7 @@ set<int> update_buckets_and_collect_active_set(
 
 set<int> update_set_and_collect_active(
     vector<long long>& local_d, vector<long long>& local_changed,
-    vector<long long>& local_d_prev,
+    vector<long long>& local_d_prev, set<int> current_set;
     int rank, int num_vertices, int num_procs
 ) {
     set<int> A_prim;
@@ -201,6 +201,11 @@ set<int> update_set_and_collect_active(
     for (int i = 0; i < local_vertex_count; i++) {
         if (local_changed[i] == 1) {
             int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
+
+
+            if (local_d_prev[i] > local_d[i]) {
+                current_set.insert(global_id);
+            }
 
             if (local_d_prev[i] > local_d[i]) {
                 A_prim.insert(global_id);
@@ -1149,9 +1154,9 @@ int main(int argc, char** argv) {
     }
 
     cout << "Processing with IOS" << endl;
-    unordered_map<int, long long> final_values = delta_stepping_basic(my_vertices, global_root, rank, num_processes, num_vertices);
+    // unordered_map<int, long long> final_values = delta_stepping_basic(my_vertices, global_root, rank, num_processes, num_vertices);
     // unordered_map<int, long long> final_values = delta_stepping_prunning(my_vertices, global_root, rank, num_processes, num_vertices, max_weight);
-    // unordered_map<int, long long> final_values = delta_stepping_hybrid(my_vertices, global_root, rank, num_processes, num_vertices);
+    unordered_map<int, long long> final_values = delta_stepping_hybrid(my_vertices, global_root, rank, num_processes, num_vertices);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
