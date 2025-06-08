@@ -197,6 +197,7 @@ set<int> update_set_and_collect_active(
 ) {
     set<int> A_prim;
     int local_vertex_count = local_d.size();
+    cout << "I AM HERE" << rank << endl;
 
     for (int i = 0; i < local_vertex_count; i++) {
         if (local_changed[i] == 1) {
@@ -992,6 +993,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                 set_intersection(A_prim.begin(), A_prim.end(), A.begin(), A.end(),
                                 inserter(result, result.begin()));
 
+                cout << "Result.size: " << result.size() << " rank: " << rank << endl;
                 local_flag = !result.empty();
                 MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
             }
