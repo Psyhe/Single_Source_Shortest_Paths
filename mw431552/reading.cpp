@@ -988,8 +988,6 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
 
             local_flag = !A.empty();
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
-
-            cout <<"failing k: "<< k << " my rank: " << rank << endl;
         }
 
         local_processed_vertices+= set_of_processed_vertices.size();
@@ -1053,6 +1051,22 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                     local_d, local_changed, local_d_prev, current,
                     rank, num_vertices, num_procs
                 );
+
+                if (rank >=0) {
+                    cout << "local_d: " << local_d.size() << " rank: " << rank << endl;
+                    for (long long v: local_d) {
+                        cout << v << " ";
+                    }
+                    cout << endl;
+                }
+
+                if (rank >=0) {
+                    cout << "current: " << current.size() << " rank: " << rank << endl;
+                    for (long long v: current) {
+                        cout << v << " ";
+                    }
+                    cout << endl;
+                }
 
                 result.clear();
                 set_intersection(A_prim.begin(), A_prim.end(), current.begin(), current.end(),
