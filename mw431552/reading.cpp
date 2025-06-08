@@ -310,6 +310,14 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
     MPI_Win_free(&win_d);
     MPI_Win_free(&win_changed);
 
+    cout << "rank: " << rank << endl;
+    for (auto &it: buckets) {
+        for (auto &it1: it) {
+            cout << it1 << " ";
+        }
+    }
+    cout << endl;
+
     unordered_map<int, long long> result;
     starting_point = rank * local_vertex_count;
     for (int i = 0; i < local_vertex_count; ++i) {
