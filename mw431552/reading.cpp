@@ -17,7 +17,7 @@ const long long INF = 1e18;
 int global_root = 0;
 const double tau = 0.4;
 
-int delta = 30; // TODO fine-tune
+int delta = 4; // TODO fine-tune
 
 struct Edge {
     int v1, v2;
@@ -781,6 +781,7 @@ void pull_model_process_long_edges(
 
 
 unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices, long long local_max_weight) {
+    cout << "prunning" << endl;
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
     vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_changed(local_vertex_count, 0);
