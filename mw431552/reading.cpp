@@ -217,9 +217,9 @@ set<int> update_set_and_collect_active(
 
 unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices) {
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
-    vector<long long> local_d(local_vertex_count, INF * delta);
+    vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_changed(local_vertex_count, 0);
-    vector<long long> local_d_prev(local_vertex_count, INF * delta);
+    vector<long long> local_d_prev(local_vertex_count, INF);
 
     // Setup MPI Windows
     MPI_Win win_d, win_changed;
@@ -396,9 +396,9 @@ void process_bucket_first_phase_IOS(
 
 unordered_map<int, long long> delta_stepping_IOS(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices) {
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
-    vector<long long> local_d(local_vertex_count, INF * delta);
+    vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_changed(local_vertex_count, 0);
-    vector<long long> local_d_prev(local_vertex_count, INF * delta);
+    vector<long long> local_d_prev(local_vertex_count);
 
     // Setup MPI Windows
     MPI_Win win_d, win_changed;
@@ -758,9 +758,9 @@ void pull_model_process_long_edges(
 
 unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices, long long local_max_weight) {
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
-    vector<long long> local_d(local_vertex_count, INF * delta);
+    vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_changed(local_vertex_count, 0);
-    vector<long long> local_d_prev(local_vertex_count, INF * delta);
+    vector<long long> local_d_prev(local_vertex_count, INF);
 
     long long real_max_weight;
     MPI_Allreduce(&local_max_weight, &real_max_weight, 1, MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
@@ -903,9 +903,9 @@ long long update_weight(long long current_max, long long potential) {
 
 unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices) {
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
-    vector<long long> local_d(local_vertex_count, INF * delta);
+    vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_changed(local_vertex_count, 0);
-    vector<long long> local_d_prev(local_vertex_count, INF * delta);
+    vector<long long> local_d_prev(local_vertex_count, INF);
 
     // Setup MPI Windows
     MPI_Win win_d, win_changed;
