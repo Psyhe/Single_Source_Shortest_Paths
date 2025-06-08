@@ -1002,12 +1002,20 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
             set<int> result;
             global_flag = true;
 
+
             for (auto& it : buckets) {
                 long long key = it.first;
                 if (key >= k) {
                     result.insert(buckets[key].begin(), buckets[key].end());
+                    
                 }
             }
+            cout << "result rank: " << rank << " set size: " << result.size()  <<endl;
+
+            for (auto it: result) {
+                cout << it << " ";
+            }
+            cout << endl;
 
             while (global_flag) {
 
