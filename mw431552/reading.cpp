@@ -269,23 +269,36 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
             process_bucket(A, vertex_mapping, rank, num_vertices, num_procs,
                         local_d, local_changed, local_d_prev, win_d, win_changed);
 
-            cout << "Failing 1 rank: " << rank << endl;
-
             set<int> A_prim = update_buckets_and_collect_active_set(
                 local_d, local_changed, local_d_prev, buckets,
                 rank, num_vertices, num_procs, k
             );
 
-            cout << "Failing 2 rank: " << rank << endl;
-
             A.clear();
             set_intersection(A_prim.begin(), A_prim.end(), buckets[k].begin(), buckets[k].end(),
                             inserter(A, A.begin()));
 
+            cout << "A_prim rank: " << rank << " set size: " << buckets[k].size()  << endl;
+            for (auto &it: A_prim) {
+                cout << it.first << " ";
+            }
+            cout << endl;
+
+
+            cout << "buckets rank: " << rank << " set size: " << buckets[k].size()  <<endl;
+            for (auto &it: buckets[k]) {
+                cout << it.first << " ";
+            }
+            cout << endl;
+
+            cout << "A rank: " << rank << " set size: " << A.size()  <<endl;
+            for (auto &it: A) {
+                cout << it.first << " ";
+            }
+            cout << endl;
+
             local_flag = !A.empty();
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
-            cout << "Failing 3 rank: " << rank << endl;
-
         }
 
         buckets[k].clear();
