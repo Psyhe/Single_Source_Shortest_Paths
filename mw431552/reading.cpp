@@ -203,6 +203,8 @@ set<int> update_set_and_collect_active(
             int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
             cout << "inside update rank:" << rank << " local_id = "<< i << endl;
             cout << "inside update rank:" << rank << " global_id = "<< global_id << endl;
+            cout << "local_d_prev[i] " << local_d_prev[i] << endl;
+            cout << "local_d[i] " << local_d[i] << endl;
 
 
             if (local_d_prev[i] > local_d[i]) {
@@ -215,6 +217,12 @@ set<int> update_set_and_collect_active(
 
             local_d_prev[i] = local_d[i];
             local_changed[i] = 0;
+
+            cout << "Inside update current set" << endl;
+            for (int &it: current_set) {
+                cout << it << " ";
+            }
+            cout << endl;
         }
     }
 
