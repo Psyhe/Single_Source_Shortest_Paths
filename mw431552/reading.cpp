@@ -263,7 +263,7 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
         MPI_Allreduce(&filled_buckets, &continue_running, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
         if (!continue_running) break;
 
-        bool local_flag = true, global_flag = true;
+        int local_flag = 1, global_flag = 1;
 
         while (global_flag) {
             process_bucket(A, vertex_mapping, rank, num_vertices, num_procs,
@@ -298,7 +298,7 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
             cout << endl;
 
             local_flag = !A.empty();
-            MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+            MPI_Allreduce(&local_flag, &global_flag, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
         }
 
         buckets[k].clear();
