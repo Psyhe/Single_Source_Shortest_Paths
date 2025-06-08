@@ -1025,7 +1025,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
 
             while (global_flag) {
 
-                if (rank >=0) {
+                if (rank ==3) {
                     cout << "local_d: " << local_d.size() << " rank: " << rank << endl;
                     for (long long v: local_d) {
                         cout << v << " ";
@@ -1033,7 +1033,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                     cout << endl;
                 }
 
-                if (rank >=0) {
+                if (rank ==3) {
                     cout << "result: " << result.size() << " rank: " << rank << endl;
                     for (long long v: result) {
                         cout << v << " ";
@@ -1052,7 +1052,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                     rank, num_vertices, num_procs
                 );
 
-                if (rank >=0) {
+                if (rank ==3) {
                     cout << "local_d: " << local_d.size() << " rank: " << rank << endl;
                     for (long long v: local_d) {
                         cout << v << " ";
@@ -1060,7 +1060,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                     cout << endl;
                 }
 
-                if (rank >=0) {
+                if (rank ==3) {
                     cout << "current: " << current.size() << " rank: " << rank << endl;
                     for (long long v: current) {
                         cout << v << " ";
@@ -1074,7 +1074,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                 
                 MPI_Barrier(MPI_COMM_WORLD);
 
-                if (rank == 2) {
+                if (rank == 3) {
                                  cout << "Result.size: " << result.size() << " rank: " << rank << endl;
                     for (int i = 0; i< local_vertex_count; i++){
                         cout <<local_changed[i] << " ";
