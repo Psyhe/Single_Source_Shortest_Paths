@@ -987,6 +987,8 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
 
             local_flag = !A.empty();
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+
+            cout <<"failing k: "<< k << " my rank: " << rank << endl;
         }
 
         local_processed_vertices+= set_of_processed_vertices.size();
