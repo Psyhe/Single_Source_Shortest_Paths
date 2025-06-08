@@ -537,32 +537,36 @@ void process_bucket_outer_short(
     MPI_Barrier(MPI_COMM_WORLD);
 }
 
+
+struct PullRequest {
+    int requester_v; // global id of v
+    int u;           // global id of u
+    long long current_k;
+};
+
+struct PullResponse {
+    int v;
+    long long d_u;
+    long long weight;
+};
+
 void pull_model_process_long_edges(
     long long k,
     unordered_map<int, Vertex>& vertex_mapping,
     vector<long long>& local_d,
+    vector<long long>& local_changed,
     int rank,
     int num_procs,
     int num_vertices,
     int delta
 ) {
-    struct PullRequest {
-        int requester_v; // global id of v
-        int u;           // global id of u
-    };
-
-    struct PullResponse {
-        int v;
-        long long d_u;
-        long long weight;
-    };
 
     // ==================== Build pull requests ====================
     vector<vector<PullRequest>> requests_to_send(num_procs);
 
     for (auto& it: vertex_mapping) {
         Vertex vertex = it.second;
-        int v = it.first;
+        int v = vertex.id;
         long long d_v = local_d[local_index(v, local_d.size())];
         if ((d_v / delta) > k) {
             for (auto& edge : vertex.edges) {
@@ -581,8 +585,9 @@ void pull_model_process_long_edges(
     vector<int> send_counts(num_procs), recv_counts(num_procs);
     vector<int> send_displs(num_procs), recv_displs(num_procs);
 
-    for (int i = 0; i < num_procs; ++i)
+    for (int i = 0; i < num_procs; ++i) {
         send_counts[i] = requests_to_send[i].size();
+    }
 
     MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
@@ -671,6 +676,8 @@ void pull_model_process_long_edges(
         int local_idx = local_index(v, local_d.size());
         long long& d_v = local_d[local_idx];
         d_v = min(d_v, d_u + w);
+        local_d[local_idx] = d_v;
+        local_d[local_idx] = 1;
     }
 
     MPI_Type_free(&MPI_PULL_RESP);
@@ -754,7 +761,14 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
             //     local_d, local_changed, local_d_prev, win_d, win_changed);
             
             cout << "I am in pull model" << endl;
-            pull_model_process_long_edges(k, vertex_mapping, local_d, rank, num_procs, num_vertices, delta);
+            pull_model_process_long_edges(k, vertex_mapping, local_d, local_changed, , num_procs, num_vertices, delta);
+            
+            MPI_Barrier(MPI_COMM_WORLD);
+
+            set<int> A_prim = update_buckets_and_collect_active_set(
+                local_d, local_changed, local_d_prev, buckets,
+                rank, num_vertices, num_procs, k
+        );
         }
         else {
             // Default way
