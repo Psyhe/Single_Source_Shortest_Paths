@@ -200,10 +200,9 @@ set<int> update_set_and_collect_active(
 
     for (int i = 0; i < local_vertex_count; i++) {
         if (local_changed[i] == 1) {
+            int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
             cout << "inside update rank:" << rank << " local_id = "<< i << endl;
             cout << "inside update rank:" << rank << " global_id = "<< global_id << endl;
-
-            int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
 
 
             if (local_d_prev[i] > local_d[i]) {
