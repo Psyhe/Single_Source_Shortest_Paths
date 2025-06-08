@@ -761,7 +761,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
             //     local_d, local_changed, local_d_prev, win_d, win_changed);
             
             cout << "I am in pull model" << endl;
-            pull_model_process_long_edges(k, vertex_mapping, local_d, local_changed, , num_procs, num_vertices, delta);
+            pull_model_process_long_edges(k, vertex_mapping, local_d, local_changed, rank, num_procs, num_vertices, delta);
             
             MPI_Barrier(MPI_COMM_WORLD);
 
