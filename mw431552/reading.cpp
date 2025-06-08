@@ -993,16 +993,20 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                 result.clear();
                 set_intersection(A_prim.begin(), A_prim.end(), current.begin(), current.end(),
                                 inserter(result, result.begin()));
+                
+                MPI_Barrier(MPI_COMM_WORLD);
 
-
-                if (rank == 3) {
+                if (rank == 1) {
                                  cout << "Result.size: " << result.size() << " rank: " << rank << endl;
                     for (int i = 0; i< local_vertex_count; i++){
                         cout <<local_changed[i] << " ";
                     }
                     cout << endl;
                 }
+
                 local_flag = !result.empty();
+                MPI_Barrier(MPI_COMM_WORLD);
+
                 MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
             }
             break;
