@@ -236,7 +236,7 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         if (global_id != root) {
-            buckets[INF].insert(global_id);
+            buckets[INF/delta].insert(global_id);
         }
     }
 
@@ -424,7 +424,7 @@ unordered_map<int, long long> delta_stepping_IOS(unordered_map<int, Vertex> vert
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         if (global_id != root) {
-            buckets[INF].insert(global_id);
+            buckets[INF/delta].insert(global_id);
         }
     }
 
@@ -789,7 +789,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         if (global_id != root) {
-            buckets[INF].insert(global_id);
+            buckets[INF/delta].insert(global_id);
         }
     }
 
@@ -931,7 +931,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         if (global_id != root) {
-            buckets[INF].insert(global_id);
+            buckets[INF/delta].insert(global_id);
         }
     }
 
