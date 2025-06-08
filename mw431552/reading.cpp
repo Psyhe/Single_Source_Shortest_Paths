@@ -975,6 +975,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
             A.clear();
 
             set<int> result;
+            global_flag = true;
 
             for (auto& it : buckets) {
                 long long key = it.first;
