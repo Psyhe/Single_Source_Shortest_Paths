@@ -394,7 +394,7 @@ unordered_map<int, long long> delta_stepping_IOS(unordered_map<int, Vertex> vert
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
         }
 
-        process_bucket_second_phase_IOS(A, vertex_mapping, rank, num_vertices, num_procs,
+        process_bucket(A, vertex_mapping, rank, num_vertices, num_procs,
                         local_d, local_changed, local_d_prev, win_d, win_changed);
         
         set<int> A_prim = update_buckets_and_collect_active_set(
@@ -488,6 +488,7 @@ int main(int argc, char** argv) {
     }
     infile.close();
 
+    cout << "Processing with IOS" << endl;
     unordered_map<int, long long> final_values = delta_stepping_IOS(my_vertices, global_root, rank, num_processes, num_vertices);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
