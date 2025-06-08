@@ -508,7 +508,7 @@ int main(int argc, char** argv) {
     infile.close();
 
     cout << "Processing with IOS" << endl;
-    unordered_map<int, long long> final_values = delta_stepping_IOS(my_vertices, global_root, rank, num_processes, num_vertices);
+    unordered_map<int, long long> final_values = delta_stepping_basic(my_vertices, global_root, rank, num_processes, num_vertices);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
@@ -518,7 +518,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    outfile << "shit 5" << "\n";
+    // outfile << "shit 5" << "\n";
 
     // for (int v = start_vertex; v <= end_vertex; ++v) {
     //     outfile << v << " edges:";
@@ -529,7 +529,9 @@ int main(int argc, char** argv) {
     //     outfile << "\n";
     // }
     for (int v = start_vertex; v <= end_vertex; ++v) {
-        outfile << v << " " << final_values[v] << "\n";
+        // outfile << v << " " << final_values[v] << "\n";
+        outfile << final_values[v] << "\n";
+   
     }
     outfile.close();
 
