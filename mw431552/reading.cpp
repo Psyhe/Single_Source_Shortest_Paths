@@ -491,7 +491,11 @@ bool should_use_pull_model(
     // We assume edge weights are uniformly distributed in [0, w_max]
     // So, for each vertex v, expected edges in [Δ, d(v) - kΔ - 1] = degree × ((d(v) - (k+1)Δ) / w_max)
 
-    for (const auto& [v_id, vertex] : vertex_mapping) {
+    // for (const auto& [v_id, vertex] : vertex_mapping) {
+    for (auto& it: vertex_mapping) {
+        int v_id = it.first;
+        Vertex vertex = it.second;
+
         long long d_v = local_d[local_index(v_id, local_d.size())]; // local_d is local per process
 
         // Only consider vertices that are *not* in current bucket
