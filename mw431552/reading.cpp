@@ -916,6 +916,7 @@ long long update_weight(long long current_max, long long potential) {
 
 
 unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices) {
+    cout << "hybrid" << endl;
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
     vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_changed(local_vertex_count, 0);
