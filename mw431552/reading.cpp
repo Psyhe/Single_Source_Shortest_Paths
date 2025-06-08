@@ -200,6 +200,9 @@ set<int> update_set_and_collect_active(
 
     for (int i = 0; i < local_vertex_count; i++) {
         if (local_changed[i] == 1) {
+            cout << "inside update rank:" << rank << " local_id = "<< i << endl;
+            cout << "inside update rank:" << rank << " global_id = "<< global_id << endl;
+
             int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
 
 
@@ -1046,6 +1049,25 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                 set<int> current = result;
                 process_bucket(current, vertex_mapping, rank, num_vertices, num_procs,
                             local_d, local_changed, local_d_prev, win_d, win_changed);
+
+                if (rank ==3) {
+                    cout << "local_d: " << local_d.size() << " rank: " << rank << endl;
+                    for (long long v: local_d) {
+                        cout << v << " ";
+                    }
+                    cout << endl;
+                }
+
+                if (rank ==3) {
+                    cout << "local_changed: " << local_changed.size() << " rank: " << rank << endl;
+                    for (long long v: local_changed) {
+                        cout << v << " ";
+                    }
+                    cout << endl;
+                }
+
+                MPI_Barrier(MPI_COMM_WORLD);
+
 
                 set<int> A_prim = update_set_and_collect_active(
                     local_d, local_changed, local_d_prev, current,
