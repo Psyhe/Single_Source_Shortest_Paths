@@ -1021,7 +1021,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
 
                 if (rank >=0) {
                     cout << "local_d: " << result.size() << " rank: " << rank << endl;
-                    for (int v: local_d) {
+                    for (long long v: local_d) {
                         cout << v << " ";
                     }
                     cout << endl;
