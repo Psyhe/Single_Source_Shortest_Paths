@@ -192,7 +192,7 @@ set<int> update_buckets_and_collect_active_set(
 
 set<int> update_set_and_collect_active(
     vector<long long>& local_d, vector<long long>& local_changed,
-    vector<long long>& local_d_prev, set<int> current_set;
+    vector<long long>& local_d_prev, set<int> current_set,
     int rank, int num_vertices, int num_procs
 ) {
     set<int> A_prim;
@@ -1039,7 +1039,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                             local_d, local_changed, local_d_prev, win_d, win_changed);
 
                 set<int> A_prim = update_set_and_collect_active(
-                    local_d, local_changed, local_d_prev,
+                    local_d, local_changed, local_d_prev, current,
                     rank, num_vertices, num_procs
                 );
 
