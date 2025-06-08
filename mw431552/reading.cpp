@@ -132,10 +132,10 @@ void relax_edge(
             MPI_Win_flush(owner_rank, win_changed);
             MPI_Win_unlock(owner_rank, win_changed);
 
-            if (owner_rank == rank) {
-                local_d[local_idx] = new_d;
-                local_changed[local_idx] = 1;
-            }
+            // if (owner_rank == rank) {
+            //     local_d[local_idx] = new_d;
+            //     local_changed[local_idx] = 1;
+            // }
         }
     }
 }
@@ -388,10 +388,10 @@ void relax_edge_IOS(
             MPI_Win_flush(owner_rank, win_changed);
             MPI_Win_unlock(owner_rank, win_changed);
 
-            if (owner_rank == rank) {
-                local_d[local_idx] = new_d;
-                local_changed[local_idx] = 1;
-            }
+            // if (owner_rank == rank) {
+            //     local_d[local_idx] = new_d;
+            //     local_changed[local_idx] = 1;
+            // }
         }
     }
 }
@@ -1209,8 +1209,8 @@ int main(int argc, char** argv) {
     }
 
     cout << "Processing with IOS" << endl;
-    // unordered_map<int, long long> final_values = delta_stepping_basic(my_vertices, global_root, rank, num_processes, num_vertices);
-    unordered_map<int, long long> final_values = delta_stepping_prunning(my_vertices, global_root, rank, num_processes, num_vertices, max_weight);
+    unordered_map<int, long long> final_values = delta_stepping_basic(my_vertices, global_root, rank, num_processes, num_vertices);
+    // unordered_map<int, long long> final_values = delta_stepping_prunning(my_vertices, global_root, rank, num_processes, num_vertices, max_weight);
     // unordered_map<int, long long> final_values = delta_stepping_hybrid(my_vertices, global_root, rank, num_processes, num_vertices);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
