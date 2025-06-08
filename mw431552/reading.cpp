@@ -767,7 +767,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
             );
         }
 
-        // buckets[k].clear();
+        buckets[k].clear();
         k += 1;
         MPI_Barrier(MPI_COMM_WORLD);
     }
