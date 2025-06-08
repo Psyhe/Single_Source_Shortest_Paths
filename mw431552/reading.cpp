@@ -110,30 +110,30 @@ void relax_edge(
     long long new_d = min(d_v, d_u + w);
 
     if (new_d < d_v) {
+        // Take exclusive lock, re-check condition, then write
+        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0, win_d);
+        long long current_dv;
+        MPI_Get(&current_dv, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_d);
+        MPI_Win_flush(owner_rank, win_d);
 
-
-        MPI_Win_lock(MPI_LOCK_SHARED, owner_rank, 0, win_d);
-        MPI_Get(&d_v, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_d);
-        
-        if (new_d < d_v) {
-            // MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0, win_d);
+        if (new_d < current_dv) {
             MPI_Put(&new_d, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_d);
             MPI_Win_flush(owner_rank, win_d);
-            MPI_Win_unlock(owner_rank, win_d);
+        }
+        MPI_Win_unlock(owner_rank, win_d);
 
+        if (new_d < current_dv) {
             long long updated = 1;
-            // MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0, win_changed);
+            MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0, win_changed);
             MPI_Put(&updated, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_changed);
             MPI_Win_flush(owner_rank, win_changed);
-            // MPI_Win_unlock(owner_rank, win_changed);
+            MPI_Win_unlock(owner_rank, win_changed);
 
             if (owner_rank == rank) {
                 local_d[local_idx] = new_d;
                 local_changed[local_idx] = 1;
             }
         }
-
-        MPI_Win_unlock(owner_rank, win_d);
     }
 }
 
