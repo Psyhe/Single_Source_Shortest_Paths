@@ -589,7 +589,10 @@ void pull_model_process_long_edges(
     cout << "Step 1: Build Pull Requests: " << rank << endl;
     vector<vector<PullRequest>> requests_to_send(num_procs);
 
-    for (const auto& [id, vertex] : vertex_mapping) {
+    for (const auto& it : vertex_mapping) {
+        int id = it.first;
+        Vertex vertex = it.second;
+
         long long d_v = local_d[local_index(vertex.id, local_d.size())];
         if ((d_v / delta) > k) {
             for (const auto& edge : vertex.edges) {
@@ -934,7 +937,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
 
         while (global_flag) {
             // All vertices in A will be processed within this bucket
-            set_of_processed.insert(A.begin(), A.end());
+            set_of_processed_vertices.insert(A.begin(), A.end());
 
             process_bucket(A, vertex_mapping, rank, num_vertices, num_procs,
                         local_d, local_changed, local_d_prev, win_d, win_changed);
@@ -952,7 +955,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
         }
 
-        local_processed_vertices+= set_of_processed.size();
+        local_processed_vertices+= set_of_processed_vertices.size();
         MPI_Barrier(MPI_COMM_WORLD);
 
         MPI_Allreduce(&local_processed_vertices, &total_processed_vertices, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
@@ -971,7 +974,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
             for (auto& it : buckets) {
                 long long key = it.first;
                 if (key >= k) {
-                    result.insert(value_set.begin(), value_set.end());
+                    result.insert(buckets[key].begin(), buckets[key].end());
                 }
             }
 
