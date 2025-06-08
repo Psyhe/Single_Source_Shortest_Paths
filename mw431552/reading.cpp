@@ -677,7 +677,7 @@ void pull_model_process_long_edges(
         long long& d_v = local_d[local_idx];
         d_v = min(d_v, d_u + w);
         local_d[local_idx] = d_v;
-        local_d[local_idx] = 1;
+        local_changed[local_idx] = 1;
     }
 
     MPI_Type_free(&MPI_PULL_RESP);
@@ -768,7 +768,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
             set<int> A_prim = update_buckets_and_collect_active_set(
                 local_d, local_changed, local_d_prev, buckets,
                 rank, num_vertices, num_procs, k
-        );
+            );
         }
         else {
             // Default way
