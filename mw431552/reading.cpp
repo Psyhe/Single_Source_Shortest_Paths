@@ -640,7 +640,7 @@ void pull_model_process_long_edges(
         long long d_v = local_d[local_index(vertex.id, local_d.size())];
         if ((d_v / delta) > k) {
             for (const auto& edge : vertex.edges) {
-                int u = edge.v1;
+                int u = edge.v2;
                 long long w = edge.weight;
 
                 if (w < d_v - k * delta) {  // pruning condition
@@ -661,7 +661,11 @@ void pull_model_process_long_edges(
     vector<int> send_displs(num_procs), recv_displs(num_procs);
 
     for (int i = 0; i < num_procs; ++i)
+    {
+        for (auto xd : requests_to_send[i])
+        cout << "SENDING REQUEST TO PROC " << i << " FOR " << xd.current_k << " " << xd.requester_v << " " << xd.u << endl;
         send_counts[i] = requests_to_send[i].size();
+    }
 
     MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
@@ -703,7 +707,7 @@ void pull_model_process_long_edges(
             long long d_u = local_d[local_index(u, local_d.size())];
             if ((d_u / delta) == k) {
                 for (const Edge& e : vertex_mapping[u].edges) {
-                    if (e.v1 == v) {
+                    if (e.v2 == v) {
                         int owner_v = owner(v, num_vertices, num_procs);
                         responses_to_send[owner_v].push_back({v, d_u, e.weight});
                         break;
@@ -778,6 +782,7 @@ void pull_model_process_long_edges(
         int local_idx = local_index(v, local_d.size());
         long long& d_v = local_d[local_idx];
         long long new_d = d_u + w;
+        cout << "CURRENT INDEX" << v << endl;
 
         if (new_d < d_v) {
             local_d[local_idx] = new_d;
