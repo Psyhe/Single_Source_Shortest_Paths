@@ -1099,7 +1099,7 @@ int algorithm_opt(
         global_flag = 1;
         local_flag = 1;
 
-        this part is from IOS - processing short inner edges first
+        // this part is from IOS - processing short inner edges first
 
 
 
