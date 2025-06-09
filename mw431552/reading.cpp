@@ -303,7 +303,7 @@ void process_bucket_outer_short(
     for (int u : A) {
         Vertex& current_vertex = vertex_mapping[u];
         for (Edge& e : current_vertex.edges) {
-            if (e.weight <=  delta) {
+            if (e.weight <= delta) {
                 relax_edge(u, e, rank, num_vertices, num_procs,
                         vertex_mapping, local_d, local_changed, local_d_prev,
                         win_d, win_changed);
@@ -964,6 +964,136 @@ int algorithm_hybrid(
     return 0;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int algorithm_opt(
+    set<int>& A,
+    unordered_map<int, Vertex>& vertex_mapping,
+    unordered_map<long long, set<int>>& buckets,
+    long long& k,
+    int rank,
+    int num_vertices,
+    int num_procs,
+    vector<long long>& local_d,
+    vector<long long>& local_changed,
+    vector<long long>& local_d_prev,
+    MPI_Win& win_d,
+    MPI_Win& win_changed,
+    long long& local_processed_vertices,
+    long long& total_processed_vertices
+) {
+    // All vertices in A will be processed within this bucket
+    set<int>  set_of_processed_vertices;
+
+    int global_flag = 1;
+    int local_flag = 1;
+
+    // this part is from IOS - processing short inner edges first
+    while (global_flag) {
+        set_of_processed_vertices.insert(A.begin(), A.end());
+
+        process_bucket_first_phase_IOS(A, vertex_mapping, rank, num_vertices, num_procs,
+                    local_d, local_changed, local_d_prev, win_d, win_changed);
+
+        intersect_and_check_active_set(
+            A, buckets, local_d, local_changed, local_d_prev,
+            rank, num_vertices, num_procs, k, global_flag
+        );
+    }
+
+    // prunning
+
+    long long local_push_count = local_push(
+        buckets[k], vertex_mapping, local_d, k, delta, real_max_weight
+    );
+    long long local_pull_count = local_pull(
+        buckets[k], vertex_mapping, local_d, k, delta, real_max_weight,
+        rank, num_vertices, num_procs
+    );
+
+    long long total_push, total_pull;
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Allreduce(&local_push_count, &total_push, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_pull_count, &total_pull, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+    if (total_pull < total_push) {
+        // process short outer edges first, not to forget them later
+        process_bucket_outer_short(A, vertex_mapping, rank, num_vertices, num_procs,
+                    local_d, local_changed, local_d_prev, win_d, win_changed);
+
+
+        cout << "opt pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
+        pull_model_process_long_edges(
+            k, vertex_mapping, local_d, local_changed,
+            rank, num_procs, num_vertices, delta
+        );
+
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        set<int> A_prim = update_buckets_and_collect_active_set(
+            local_d, local_changed, local_d_prev, buckets,
+            rank, num_vertices, num_procs, k
+        );
+    } else {
+        // both short outer and long edges
+        process_bucket(
+            buckets[k], vertex_mapping, rank, num_vertices, num_procs,
+            local_d, local_changed, local_d_prev, win_d, win_changed
+        );
+
+        set<int> A_prim = update_buckets_and_collect_active_set(
+            local_d, local_changed, local_d_prev, buckets,
+            rank, num_vertices, num_procs, k
+        );
+    }
+
+
+
+
+    // Hybrid part
+    local_processed_vertices += set_of_processed_vertices.size();
+
+    buckets[k].clear();
+
+    MPI_Allreduce(&local_processed_vertices, &total_processed_vertices, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+    if (total_processed_vertices > (tau * num_vertices)) {
+        // Process everything from remaining buckets at once
+        cout << "OPT hybrid part !!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+        A.clear();
+        set<int> result;
+
+        for (auto& it : buckets) {
+            if (it.first >= k) {
+                result.insert(it.second.begin(), it.second.end());
+            }
+        }
+
+        loop_process_dynamic_bucket_phase_hybrid(
+            result, vertex_mapping, rank, num_vertices, num_procs,
+            local_d, local_changed, local_d_prev, win_d, win_changed
+        );
+        return 1;
+    }
+    return 0;
+}
+
 unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices, long long max_weight, const int option) {
     cout << "Beginning of processing algorithm" << endl;
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
@@ -985,7 +1115,7 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
         cout << "HYBRID" << endl;
     }
     else if (option == OPT) {
-        cout << "OPT placeholder" << endl;
+        cout << "OPT" << endl;
     }
     else {
         cerr << "Incorrect opt" << endl;
@@ -1056,7 +1186,15 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
             }
         }
         else if (option == OPT) {
-            cout << "OPT placeholder" << endl;
+            int break_the_loop = algorithm_opt(
+                A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
+                local_d, local_changed, local_d_prev,
+                win_d, win_changed,
+                local_processed_vertices, total_processed_vertices
+            );
+            if (break_the_loop) {
+                break;
+            }        
         }
         else {
             cerr << "Incorrect opt" << endl;
@@ -1148,8 +1286,9 @@ int main(int argc, char** argv) {
 
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC);
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, IOS);
-    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, PRUNING);
+    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, PRUNING);
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, HYBRID);
+    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, OPT);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
