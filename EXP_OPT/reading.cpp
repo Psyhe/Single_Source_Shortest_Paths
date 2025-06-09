@@ -839,8 +839,8 @@ void pull_model(
     }
 
     // Flatten and send requests
-    std::vector<long long> sendcounts(num_procs), recvcounts(num_procs);
-    std::vector<long long> sdispls(num_procs), rdispls(num_procs);
+    std::vector<int> sendcounts(num_procs), recvcounts(num_procs);
+    std::vector<int> sdispls(num_procs), rdispls(num_procs);
     std::vector<long long> sendbuf;
 
 
