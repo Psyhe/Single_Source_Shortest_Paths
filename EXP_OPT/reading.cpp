@@ -1010,7 +1010,7 @@ int algorithm_opt(
 
         process_bucket_outer_short(
             A, vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed, k
+            local_d, local_changed, local_d_prev, win_d, win_changed
         );
 
         intersect_and_check_active_set(
