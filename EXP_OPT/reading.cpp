@@ -36,6 +36,11 @@ struct Vertex {
     int degree;
 };
 
+long long get_bucket_index(long long distance, int delta) 
+{
+    return distance / delta;
+}
+
 long long update_weight(long long current_max, long long potential) {
     if (current_max >= potential) {
         return current_max;
@@ -812,21 +817,23 @@ void pull_model(
     int start_node,
     int end_node
 ) {
+    std::vector<std::vector<Request>> outgoing_requests(num_procs);
 
     for (int v = start_node; v <= end_node; ++v) {
-        int local_idx = global_to_local_index(vertex.id, rank, num_vertices, num_procs);
+        int local_idx = global_to_local_index(v, rank, num_vertices, num_procs);
         long long dv = local_d[local_idx];
 
         if (dv < (k + 1) * delta) 
             continue;
 
-        for (const auto& edge : local_graph.at(v)) {
-            int u = edge.target;
+        Vertex current = vertex_mapping[v];
+        for (const auto& edge : current.edges) {
+            int u = edge.v2;
             long long w = edge.weight;
 
             if (w < dv - k * delta) {
-                int owner = get_owner(u, num_vertices, num_procs);
-                outgoing_requests[owner].push_back({v, u, w});
+                int local_owner = owner(u, num_vertices, num_procs);
+                outgoing_requests[local_owner].push_back({v, u, w});
             }
         }
     }
@@ -882,11 +889,11 @@ void pull_model(
 
         int u_local = global_to_local_index(u, rank, num_vertices, num_procs);
         
-        long long du = dist_local[u_local];
+        long long du = local_d[u_local];
 
         if (buckets[k].count(u) > 0) {
             long long new_dist = du + w;
-            outgoing_responses[get_owner(requester, total_nodes, num_procs)].push_back({requester, new_dist});
+            outgoing_responses[get_owner(requester, num_vertices, num_procs)].push_back({requester, new_dist});
         }
 
     }
@@ -934,7 +941,7 @@ void pull_model(
 
             int v_local = global_to_local_index(v, rank, total_recv, num_procs);
 
-            long long old_dist = dist_shared[v_local];
+            long long old_dist = local_d[v_local];
             //std::cout << "PROCESS " << rank << " CHECKS " << new_dist <<" < " << old_dist << "?" << std::endl;
             if (new_dist < old_dist) 
             {
@@ -945,8 +952,8 @@ void pull_model(
                 if (buckets.count(old_bucket_idx))
                     buckets[old_bucket_idx].erase(v);
 
-                dist_shared[v_local] = new_dist;
-                dist_local[v_local] = new_dist;
+                local_d[v_local] = new_dist;
+                local_changed[v_local]  = 1;
 
                 buckets[new_bucket_idx].insert(v);
                 active_bucket_indices.insert(v);
