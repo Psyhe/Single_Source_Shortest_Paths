@@ -584,7 +584,7 @@ long long local_pull(
         int v_id = it.first;
         Vertex vertex = it.second;
 
-        long long d_v = local_d[global_to_local_index(u, rank, num_vertices, num_procs)]; // local_d is local per process
+        long long d_v = local_d[global_to_local_index(v_id, rank, num_vertices, num_procs)]; // local_d is local per process
 
         // Only consider vertices that are *not* in current bucket
         if ((d_v / delta) > k) {
@@ -776,7 +776,7 @@ void pull_model_process_long_edges(
         int u = req.u;
 
         if (vertex_mapping.count(u)) {
-            long long d_u = local_d[global_to_local_index(vertex.id, rank, num_vertices, num_procs)];
+            long long d_u = local_d[global_to_local_index(u, rank, num_vertices, num_procs)];
             if ((d_u / delta) == k) {
                 for (const Edge& e : vertex_mapping[u].edges) {
                     if (e.v2 == v) {
