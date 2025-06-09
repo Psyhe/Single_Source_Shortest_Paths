@@ -985,7 +985,7 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
     long long real_max_weight = 0;
-    MPI_Allreduce(&local_max_weight, &real_max_weight, 1, MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&max_weight, &real_max_weight, 1, MPI_LONG_LONG, MPI_MAX, MPI_COMM_WORLD);
 
     long long k = 0;
     int continue_running = 1;
