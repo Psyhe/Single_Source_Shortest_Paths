@@ -867,7 +867,7 @@ void algorithm_pruning(
     MPI_Allreduce(&local_push_count, &total_push, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(&local_pull_count, &total_pull, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 
-    if (total_pull < total_push) {
+    // if (total_pull < total_push) {
         // cout << "pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
         pull_model_process_long_edges(
             k, vertex_mapping, local_d, local_changed,
@@ -880,17 +880,17 @@ void algorithm_pruning(
             local_d, local_changed, local_d_prev, buckets,
             rank, num_vertices, num_procs, k
         );
-    } else {
-        process_bucket(
-            buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed
-        );
+    // } else {
+    //     process_bucket(
+    //         buckets[k], vertex_mapping, rank, num_vertices, num_procs,
+    //         local_d, local_changed, local_d_prev, win_d, win_changed
+    //     );
 
-        set<int> A_prim = update_buckets_and_collect_active_set(
-            local_d, local_changed, local_d_prev, buckets,
-            rank, num_vertices, num_procs, k
-        );
-    }
+    //     set<int> A_prim = update_buckets_and_collect_active_set(
+    //         local_d, local_changed, local_d_prev, buckets,
+    //         rank, num_vertices, num_procs, k
+    //     );
+    // }
 
     buckets[k].clear();
 }
@@ -1092,16 +1092,14 @@ int algorithm_opt(
 
 
 
-    // if (total_pull < total_push) {
+    if (total_pull < total_push) {
 
-    //     MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Barrier(MPI_COMM_WORLD);
 
-        // global_flag = 1;
-        // local_flag = 1;
+        global_flag = 1;
+        local_flag = 1;
 
-        // this part is from IOS - processing short inner edges first
-
-
+        this part is from IOS - processing short inner edges first
 
 
 
@@ -1110,15 +1108,17 @@ int algorithm_opt(
 
 
 
-        // // process short outer edges first, not to forget them later
+
+
+        // process short outer edges first, not to forget them later
         
-        // process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-        //             local_d, local_changed, local_d_prev, win_d, win_changed);
+        process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
+                    local_d, local_changed, local_d_prev, win_d, win_changed);
 
-        // set<int> A_prim = update_buckets_and_collect_active_set(
-        //     local_d, local_changed, local_d_prev, buckets,
-        //     rank, num_vertices, num_procs, k
-        // );        
+        set<int> A_prim = update_buckets_and_collect_active_set(
+            local_d, local_changed, local_d_prev, buckets,
+            rank, num_vertices, num_procs, k
+        );        
 
 
         MPI_Barrier(MPI_COMM_WORLD);
@@ -1135,18 +1135,18 @@ int algorithm_opt(
             local_d, local_changed, local_d_prev, buckets,
             rank, num_vertices, num_procs, k
         );
-    // } else {
-    //     // both short outer and long edges
-    //     process_bucket(
-    //         buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-    //         local_d, local_changed, local_d_prev, win_d, win_changed
-    //     );
+    } else {
+        // both short outer and long edges
+        process_bucket(
+            buckets[k], vertex_mapping, rank, num_vertices, num_procs,
+            local_d, local_changed, local_d_prev, win_d, win_changed
+        );
 
-    //     set<int> A_prim = update_buckets_and_collect_active_set(
-    //         local_d, local_changed, local_d_prev, buckets,
-    //         rank, num_vertices, num_procs, k
-    //     );
-    // }
+        set<int> A_prim = update_buckets_and_collect_active_set(
+            local_d, local_changed, local_d_prev, buckets,
+            rank, num_vertices, num_procs, k
+        );
+    }
 
     // Hybrid part
     local_processed_vertices += set_of_processed_vertices.size();
@@ -1369,9 +1369,9 @@ int main(int argc, char** argv) {
 
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC);
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, IOS);
-    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, PRUNING);
+    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, PRUNING);
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, HYBRID);
-    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, OPT);
+    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, OPT);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
