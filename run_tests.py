@@ -2,8 +2,13 @@ import argparse
 from pathlib import Path
 import subprocess
 import filecmp
+import datetime
 
-def run_tests(break_on_fail, local):
+def run_tests(break_on_fail, local):   
+    now = datetime.datetime.now()       
+    now.time()
+    datetime.time(15, 8, 24, 78915)
+    print(now.time())
     Path("outputs").mkdir(parents=True, exist_ok=True)
     for solution in Path(".").iterdir():
         if solution.is_dir() and not solution.name in ["tests", "outputs"]:
