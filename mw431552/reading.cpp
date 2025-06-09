@@ -30,6 +30,20 @@ struct Vertex {
     int degree;
 };
 
+
+int get_global_min_bucket(unordered_map<long long, unordered_set<int>>& buckets) 
+{
+    int local_min_bucket = INF;
+    for (const auto& [idx, nodes] : buckets) 
+    {
+        if (!nodes.empty()) 
+            local_min_bucket = std::min(local_min_bucket, idx);
+    }
+    int global_min_bucket;
+    MPI_Allreduce(&local_min_bucket, &global_min_bucket, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+    return global_min_bucket;
+}
+
 int owner(int vertex, int total_nodes, int num_procs) {
     int base = total_nodes / num_procs;
     int remainder = total_nodes % num_procs;
@@ -268,6 +282,14 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
     bool continue_running = true;
 
     while (continue_running) {
+
+        long long global_min_bucket = get_global_min_bucket(buckets);
+
+        if (global_min_bucket == INF/delta) {
+            break;
+        }
+
+        k = get_global_min_bucket;
         set<int> A = buckets[k];
         bool filled_buckets = 0;
         for (const auto& b : buckets) {
@@ -329,7 +351,6 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
         }
 
         buckets[k].clear();
-        k += 1;
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
