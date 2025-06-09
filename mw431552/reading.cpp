@@ -866,7 +866,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
         }
 
         // if (true){
-        if (should_use_pull_model(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight)) {
+        if (!should_use_pull_model(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight)) {
             //  outer short edge processing
             // process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
             //     local_d, local_changed, local_d_prev, win_d, win_changed);
