@@ -1035,29 +1035,35 @@ int algorithm_opt(
     MPI_Allreduce(&local_push_count, &total_push, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(&local_pull_count, &total_pull, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 
-    // if (total_pull < total_push) {
-    //     // process short outer edges first, not to forget them later
-    //     process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-    //                 local_d, local_changed, local_d_prev, win_d, win_changed);
+    if (total_pull < total_push) {
+        // process short outer edges first, not to forget them later
 
-    //     set<int> A_prim = update_buckets_and_collect_active_set(
-    //         local_d, local_changed, local_d_prev, buckets,
-    //         rank, num_vertices, num_procs, k
-    //     );        
+        loop_process_bucket_outer_short_phase(
+            A, vertex_mapping, buckets, rank, num_vertices, num_procs,
+            local_d, local_changed, local_d_prev, win_d, win_changed, k
+        );
 
-    //     // cout << "opt pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
-    //     pull_model_process_long_edges(
-    //         k, vertex_mapping, local_d, local_changed,
-    //         rank, num_procs, num_vertices, delta
-    //     );
+        // process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
+        //             local_d, local_changed, local_d_prev, win_d, win_changed);
 
-    //     MPI_Barrier(MPI_COMM_WORLD);
+        // set<int> A_prim = update_buckets_and_collect_active_set(
+        //     local_d, local_changed, local_d_prev, buckets,
+        //     rank, num_vertices, num_procs, k
+        // );        
 
-    //     set<int> A_primprim = update_buckets_and_collect_active_set(
-    //         local_d, local_changed, local_d_prev, buckets,
-    //         rank, num_vertices, num_procs, k
-    //     );
-    // } else {
+        // cout << "opt pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
+        pull_model_process_long_edges(
+            k, vertex_mapping, local_d, local_changed,
+            rank, num_procs, num_vertices, delta
+        );
+
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        set<int> A_primprim = update_buckets_and_collect_active_set(
+            local_d, local_changed, local_d_prev, buckets,
+            rank, num_vertices, num_procs, k
+        );
+    } else {
         // both short outer and long edges
         process_bucket(
             buckets[k], vertex_mapping, rank, num_vertices, num_procs,
@@ -1068,7 +1074,7 @@ int algorithm_opt(
             local_d, local_changed, local_d_prev, buckets,
             rank, num_vertices, num_procs, k
         );
-    // }
+    }
 
     // Hybrid part
     local_processed_vertices += set_of_processed_vertices.size();
