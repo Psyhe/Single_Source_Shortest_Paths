@@ -4,7 +4,7 @@ ALL :=  dijkstra
 
 all : $(ALL)
 
-sssp: dijkstra.cpp
+dijkstra: dijkstra.cpp
 	$(CC) -o $@ $<  # -lblas # uncomment this when not on okeanos
 
 clean :

@@ -7,4 +7,4 @@
 #SBATCH --time 00:10:00
 
 module load common/python/3.11
-python3 run_tests.py
+python3 dijkstra_generate.py
