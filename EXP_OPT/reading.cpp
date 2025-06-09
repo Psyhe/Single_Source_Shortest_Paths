@@ -234,7 +234,7 @@ void relax_edge_IOS(
     unordered_map<int, Vertex>& vertex_mapping,
     vector<long long>& local_d,  
     vector<long long>& local_d_prev,
-    MPI_Win& win_d, MPI_Win&   long long k
+    MPI_Win& win_d,  long long k
 ) {
     int local_vertex_count = local_d.size();
     long long d_u = local_d[global_to_local_index(u, rank, num_vertices, num_procs)];
@@ -281,7 +281,7 @@ void process_bucket_first_phase_IOS(
     int rank, int num_vertices, int num_procs,
     vector<long long>& local_d,  
     vector<long long>& local_d_prev,
-    MPI_Win& win_d, MPI_Win&   long long k
+    MPI_Win& win_d, long long k
 ) {
     for (int u : A) {
         Vertex& current_vertex = vertex_mapping[u];
@@ -413,7 +413,6 @@ void loop_process_bucket_phase(
      
     vector<long long>& local_d_prev,
     MPI_Win& win_d,
-    MPI_Win&  
     long long k
 ) {
     int local_flag = 1, global_flag = 1;
@@ -440,7 +439,6 @@ void loop_process_bucket_phase_ios(
      
     vector<long long>& local_d_prev,
     MPI_Win& win_d,
-    MPI_Win&  
     long long k
 ) {
     int local_flag = 1, global_flag = 1;
@@ -469,7 +467,6 @@ void loop_process_bucket_outer_short_phase(
      
     vector<long long>& local_d_prev,
     MPI_Win& win_d,
-    MPI_Win&  
     long long k
 ) {
     int local_flag = 1, global_flag = 1;
@@ -807,7 +804,6 @@ void algorithm_pruning(
      
     vector<long long>& local_d_prev,
     MPI_Win& win_d,
-    MPI_Win&  
     long long delta,
     long long real_max_weight,
     int start_vertex,
@@ -866,7 +862,6 @@ int algorithm_hybrid(
      
     vector<long long>& local_d_prev,
     MPI_Win& win_d,
-    MPI_Win&  
     long long& local_processed_vertices,
     long long& total_processed_vertices
 ) {
@@ -951,7 +946,6 @@ int algorithm_opt(
      
     vector<long long>& local_d_prev,
     MPI_Win& win_d,
-    MPI_Win&  
     long long& local_processed_vertices,
     long long& total_processed_vertices,
     long long real_max_weight,
