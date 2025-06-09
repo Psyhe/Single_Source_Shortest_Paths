@@ -4,4 +4,4 @@
 
 if [ -z ${OMPI_COMM_WORLD_LOCAL_RANK+x} ]; then RANK=$SLURM_PROCID; else RANK=$OMPI_COMM_WORLD_LOCAL_RANK; fi
 
-./sssp new_tests/$1/$RANK.in new_tests/$1/$RANK.out
+./dijkstra new_tests/$1/$RANK.in new_tests/$1/$RANK.out

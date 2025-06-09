@@ -27,8 +27,8 @@ void swap(QueueNode* a, QueueNode* b) {
 }
 
 MinHeap* create_min_heap(int capacity) {
-    MinHeap* heap = malloc(sizeof(MinHeap));
-    heap->data = malloc(capacity * sizeof(QueueNode));
+    MinHeap* heap = (MinHeap*) malloc(sizeof(MinHeap));
+    heap->data = (QueueNode*) malloc(capacity * sizeof(QueueNode));
     heap->size = 0;
     heap->capacity = capacity;
     return heap;
@@ -90,14 +90,12 @@ int main(int argc, char** argv) {
     fscanf(input, "%d %d %d", &n_vertices, &first_vertex, &last_vertex);
     int local_n = last_vertex - first_vertex + 1;
 
-    // Adjacency list
-    int max_edges = 100000;
-    Edge** adj = calloc(local_n, sizeof(Edge*));
-    int* edge_counts = calloc(local_n, sizeof(int));
-    int* edge_capacity = calloc(local_n, sizeof(int));
+    Edge** adj = (Edge**) calloc(local_n, sizeof(Edge*));
+    int* edge_counts = (int*) calloc(local_n, sizeof(int));
+    int* edge_capacity = (int*) calloc(local_n, sizeof(int));
     for (int i = 0; i < local_n; ++i) {
         edge_capacity[i] = 8;
-        adj[i] = malloc(edge_capacity[i] * sizeof(Edge));
+        adj[i] = (Edge*) malloc(edge_capacity[i] * sizeof(Edge));
     }
 
     int u, v, w;
@@ -106,7 +104,7 @@ int main(int argc, char** argv) {
             int idx = u - first_vertex;
             if (edge_counts[idx] >= edge_capacity[idx]) {
                 edge_capacity[idx] *= 2;
-                adj[idx] = realloc(adj[idx], edge_capacity[idx] * sizeof(Edge));
+                adj[idx] = (Edge*) realloc(adj[idx], edge_capacity[idx] * sizeof(Edge));
             }
             adj[idx][edge_counts[idx]++] = (Edge){v, w};
         }
@@ -114,15 +112,15 @@ int main(int argc, char** argv) {
             int idx = v - first_vertex;
             if (edge_counts[idx] >= edge_capacity[idx]) {
                 edge_capacity[idx] *= 2;
-                adj[idx] = realloc(adj[idx], edge_capacity[idx] * sizeof(Edge));
+                adj[idx] = (Edge*) realloc(adj[idx], edge_capacity[idx] * sizeof(Edge));
             }
             adj[idx][edge_counts[idx]++] = (Edge){u, w};
         }
     }
     fclose(input);
 
-    int* dist = malloc(n_vertices * sizeof(int));
-    bool* visited = calloc(n_vertices, sizeof(bool));
+    int* dist = (int*) malloc(n_vertices * sizeof(int));
+    bool* visited = (bool*) calloc(n_vertices, sizeof(bool));
     for (int i = 0; i < n_vertices; ++i) dist[i] = INT_MAX;
     if (rank == 0) dist[0] = 0;
 
@@ -130,7 +128,7 @@ int main(int argc, char** argv) {
     if (rank == 0 && 0 >= first_vertex && 0 <= last_vertex)
         heap_push(heap, 0, 0);
 
-    while (1) {
+    while (true) {
         int local_min_dist = INT_MAX, local_min_vertex = -1;
         for (int i = 0; i < heap->size; ++i) {
             if (heap->data[i].dist < local_min_dist) {
@@ -161,10 +159,8 @@ int main(int argc, char** argv) {
             }
         }
 
-        // Broadcast updated distances to all
         MPI_Allreduce(MPI_IN_PLACE, dist, n_vertices, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
 
-        // Remove vertex from all heaps
         heap->size = 0;
         for (int i = first_vertex; i <= last_vertex; ++i) {
             if (!visited[i] && dist[i] < INT_MAX)
