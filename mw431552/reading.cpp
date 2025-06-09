@@ -17,7 +17,7 @@ const long long INF = 1e18;
 int global_root = 0;
 const double tau = 0.4;
 
-int delta = 4; // TODO fine-tune
+int delta = 5; // TODO fine-tune
 
 struct Edge {
     int v1, v2;
