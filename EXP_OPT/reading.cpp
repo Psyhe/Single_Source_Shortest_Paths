@@ -1053,7 +1053,7 @@ int algorithm_opt(
 
         MPI_Barrier(MPI_COMM_WORLD);
 
-        set<int> A_prim = update_buckets_and_collect_active_set(
+        set<int> A_primprim = update_buckets_and_collect_active_set(
             local_d, local_changed, local_d_prev, buckets,
             rank, num_vertices, num_procs, k
         );
