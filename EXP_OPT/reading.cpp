@@ -263,11 +263,9 @@ void process_bucket(
     for (int u : A) {
         Vertex& current_vertex = vertex_mapping[u];
         for (Edge& e : current_vertex.edges) {
-            if (e.weight > delta) {
-                relax_edge(u, e, rank, num_vertices, num_procs,
-                        vertex_mapping, local_d, local_changed, local_d_prev,
-                        win_d, win_changed);
-            }
+            relax_edge(u, e, rank, num_vertices, num_procs,
+                       vertex_mapping, local_d, local_changed, local_d_prev,
+                       win_d, win_changed);
         }
     }
 
@@ -534,25 +532,6 @@ void loop_process_dynamic_bucket_phase_hybrid(
     }
 }
 
-void process_bucket_pull_model(
-    const set<int>& A, unordered_map<int, Vertex>& vertex_mapping,
-    int rank, int num_vertices, int num_procs,
-    vector<long long>& local_d, vector<long long>& local_changed,
-    vector<long long>& local_d_prev,
-    MPI_Win& win_d, MPI_Win& win_changed
-) {
-    for (int u : A) {
-        Vertex& current_vertex = vertex_mapping[u];
-        for (Edge& e : current_vertex.edges) {
-            relax_edge(u, e, rank, num_vertices, num_procs,
-                       vertex_mapping, local_d, local_changed, local_d_prev,
-                       win_d, win_changed);
-        }
-    }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-}
-
 long long local_push(
     const set<int>& current_bucket,
     const unordered_map<int, Vertex>& vertex_mapping,
@@ -633,7 +612,8 @@ void pull_model_process_long_edges(
     int rank,
     int num_procs,
     int num_vertices,
-    int delta
+    int delta,
+    
 ) {
     // ==================== Step 1: Build Pull Requests ====================
     // // cout << "Step 1: Build Pull Requests: " << rank << endl;
@@ -669,7 +649,6 @@ void pull_model_process_long_edges(
     for (int i = 0; i < num_procs; ++i)
     {
         for (auto xd : requests_to_send[i])
-        // // cout << "SENDING REQUEST TO PROC " << i << " FOR "  << " " << xd.requester_v << " " << xd.u << endl;
         send_counts[i] = requests_to_send[i].size();
     }
 
@@ -1064,28 +1043,28 @@ void algorithm_pruning(
     MPI_Allreduce(&local_pull_count, &total_pull, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 
     // if (total_pull < total_push) {
-        // cout << "pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
-        // pull_model_process_long_edges(
-        //     k, vertex_mapping, local_d, local_changed,
-        //     rank, num_procs, num_vertices, delta
-        // );
-
-        // MPI_Barrier(MPI_COMM_WORLD);
-
-        // set<int> A_prim = update_buckets_and_collect_active_set(
-        //     local_d, local_changed, local_d_prev, buckets,
-        //     rank, num_vertices, num_procs, k
-        // );
-    // } else {
-        process_bucket(
-            buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed
+        cout << "pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
+        pull_model_process_long_edges(
+            k, vertex_mapping, local_d, local_changed,
+            rank, num_procs, num_vertices, delta
         );
+
+        MPI_Barrier(MPI_COMM_WORLD);
 
         set<int> A_prim = update_buckets_and_collect_active_set(
             local_d, local_changed, local_d_prev, buckets,
             rank, num_vertices, num_procs, k
         );
+    // } else {
+        // process_bucket(
+        //     buckets[k], vertex_mapping, rank, num_vertices, num_procs,
+        //     local_d, local_changed, local_d_prev, win_d, win_changed
+        // );
+
+        // set<int> A_prim = update_buckets_and_collect_active_set(
+        //     local_d, local_changed, local_d_prev, buckets,
+        //     rank, num_vertices, num_procs, k
+        // );
     // }
 
     buckets[k].clear();
@@ -1235,22 +1214,22 @@ int algorithm_opt(
     // prunning
 
 
-        global_flag = 1;
-    local_flag = 1;
-    A = buckets[k];
-    while (global_flag) {
-        set_of_processed_vertices.insert(A.begin(), A.end());
+    //     global_flag = 1;
+    // local_flag = 1;
+    // A = buckets[k];
+    // while (global_flag) {
+    //     set_of_processed_vertices.insert(A.begin(), A.end());
 
-        process_bucket_outer_short(
-            A, vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed
-        );
+    //     process_bucket_outer_short(
+    //         A, vertex_mapping, rank, num_vertices, num_procs,
+    //         local_d, local_changed, local_d_prev, win_d, win_changed
+    //     );
 
-        intersect_and_check_active_set(
-            A, buckets, local_d, local_changed, local_d_prev,
-            rank, num_vertices, num_procs, k, global_flag
-        );
-    }
+    //     intersect_and_check_active_set(
+    //         A, buckets, local_d, local_changed, local_d_prev,
+    //         rank, num_vertices, num_procs, k, global_flag
+    //     );
+    // }
 
 
     long long local_push_count = local_push(
@@ -1294,19 +1273,6 @@ int algorithm_opt(
 
         global_flag = 1;
         local_flag = 1;
-
-        // this part is from IOS - processing short inner edges first
-
-
-
-
-
-
-
-
-
-
-        // process short outer edges first, not to forget them later
         
         process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
                     local_d, local_changed, local_d_prev, win_d, win_changed);
