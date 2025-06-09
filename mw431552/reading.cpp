@@ -112,14 +112,14 @@ int local_to_global_index(int local_idx, int rank, int total_vertices, int num_p
     return offset + local_idx;
 }
 
-bool should_continue_running(const unordered_map<long long, set<int>>& buckets) {
-    bool filled_buckets = false;
+int should_continue_running(const unordered_map<long long, set<int>>& buckets) {
+    int filled_buckets = 0;
     for (const auto& b : buckets) {
         filled_buckets |= (!b.second.empty());
     }
 
-    bool global_continue = false;
-    MPI_Allreduce(&filled_buckets, &global_continue, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+    int global_continue = 0;
+    MPI_Allreduce(&filled_buckets, &global_continue, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
     return global_continue;
 }
 
@@ -382,7 +382,7 @@ void intersect_and_check_active_set(
     int num_vertices,
     int num_procs,
     long long k,
-    bool& global_flag
+    int& global_flag
 ) {
     set<int> A_prim = update_buckets_and_collect_active_set(
         local_d, local_changed, local_d_prev, buckets,
@@ -395,8 +395,8 @@ void intersect_and_check_active_set(
         inserter(A, A.begin())
     );
 
-    bool local_flag = !A.empty();
-    MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+    int local_flag = !A.empty();
+    MPI_Allreduce(&local_flag, &global_flag, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
 }
 
 
@@ -441,7 +441,7 @@ void loop_process_bucket_phase_ios(
     MPI_Win& win_changed,
     long long k
 ) {
-    bool local_flag = true, global_flag = true;
+    int local_flag = 1, global_flag = 1;
 
     while (global_flag) {
         process_bucket_first_phase_IOS(
@@ -470,7 +470,7 @@ void loop_process_bucket_outer_short_phase(
     MPI_Win& win_changed,
     long long k
 ) {
-    bool local_flag = true, global_flag = true;
+    int local_flag = 1, global_flag = 1;
 
     while (global_flag) {
         process_bucket_outer_short(
@@ -497,7 +497,7 @@ void loop_process_dynamic_bucket_phase_hybrid(
     MPI_Win& win_d,
     MPI_Win& win_changed
 ) {
-    bool local_flag = true, global_flag = true;
+    int local_flag = 1, global_flag = 1;
 
     while (global_flag) {
         MPI_Barrier(MPI_COMM_WORLD);
@@ -528,7 +528,7 @@ void loop_process_dynamic_bucket_phase_hybrid(
         local_flag = !result.empty();
         MPI_Barrier(MPI_COMM_WORLD);
 
-        MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+        MPI_Allreduce(&local_flag, &global_flag, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
     }
 }
 
@@ -832,7 +832,7 @@ void algorithm_ios(
 
 
 
-void algoritm_pruning(
+void algorithm_pruning(
     set<int>& A,
     unordered_map<int, Vertex>& vertex_mapping,
     unordered_map<long long, set<int>>& buckets,
@@ -895,7 +895,7 @@ void algoritm_pruning(
 }
 
 
-bool algorithm_hybrid(
+int algorithm_hybrid(
     set<int>& A,
     unordered_map<int, Vertex>& vertex_mapping,
     unordered_map<long long, set<int>>& buckets,
@@ -909,15 +909,32 @@ bool algorithm_hybrid(
     MPI_Win& win_d,
     MPI_Win& win_changed,
     long long& local_processed_vertices,
-    long long& total_processed_vertices
+    long long& total_processed_vertices,
 ) {
     // All vertices in A will be processed within this bucket
-    set_of_processed_vertices.insert(A.begin(), A.end());
+    set<int>  set_of_processed_vertices;
 
-    loop_process_bucket_phase(
-        A, vertex_mapping, buckets, rank, num_vertices, num_procs,
-        local_d, local_changed, local_d_prev, win_d, win_changed, k
-    );
+    int global_flag = 1;
+    int local_flag = 1;
+
+    while (global_flag) {
+        set_of_processed_vertices.insert(A.begin(), A.end());
+
+        process_bucket(A, vertex_mapping, rank, num_vertices, num_procs,
+                    local_d, local_changed, local_d_prev, win_d, win_changed);
+
+        set<int> A_prim = update_buckets_and_collect_active_set(
+            local_d, local_changed, local_d_prev, buckets,
+            rank, num_vertices, num_procs, k
+        );
+
+        A.clear();
+        set_intersection(A_prim.begin(), A_prim.end(), buckets[k].begin(), buckets[k].end(),
+                        inserter(A, A.begin()));
+
+        local_flag = !A.empty();
+        MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+    }
 
     local_processed_vertices += set_of_processed_vertices.size();
 
@@ -940,12 +957,12 @@ bool algorithm_hybrid(
             result, vertex_mapping, rank, num_vertices, num_procs,
             local_d, local_changed, local_d_prev, win_d, win_changed
         );
-        return true;
+        return 1;
     }
-    return false;
+    return 0;
 }
 
-unordered_map<int, long long> algoritm(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices, const int option) {
+unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices, const int option) {
     cout << "Beginning of processing algorithm" << endl;
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
     vector<long long> local_d(local_vertex_count, INF);
@@ -968,7 +985,7 @@ unordered_map<int, long long> algoritm(unordered_map<int, Vertex> vertex_mapping
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
     long long k = 0;
-    bool continue_running = true;
+    int continue_running = 1;
 
     long long local_processed_vertices = 0;
     long long total_processed_vertices = 0;
@@ -1003,7 +1020,7 @@ unordered_map<int, long long> algoritm(unordered_map<int, Vertex> vertex_mapping
                     local_d, local_changed, local_d_prev, win_d, win_changed, delta, real_max_weight);
         }
         else if (option == HYBRID) {
-            bool break_the_loop = algorithm_hybrid(
+            int break_the_loop = algorithm_hybrid(
                 A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
                 local_d, local_changed, local_d_prev,
                 win_d, win_changed,
@@ -1104,7 +1121,7 @@ int main(int argc, char** argv) {
 
     cout << "Processing" << endl;
 
-    unordered_map<int, long long> final_values = algoritm(my_vertices, global_root, rank, num_processes, num_vertices, BASIC);
+    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, BASIC);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
