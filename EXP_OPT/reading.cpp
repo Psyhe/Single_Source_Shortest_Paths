@@ -1004,8 +1004,6 @@ int algorithm_opt(
     int global_flag = 1;
     int local_flag = 1;
 
-    set<int> copyOfA = A;
-
     // this part is from IOS - processing short inner edges first
     while (global_flag) {
         set_of_processed_vertices.insert(A.begin(), A.end());
@@ -1039,7 +1037,7 @@ int algorithm_opt(
 
     if (total_pull < total_push) {
         // process short outer edges first, not to forget them later
-        process_bucket_outer_short(copyOfA, vertex_mapping, rank, num_vertices, num_procs,
+        process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
                     local_d, local_changed, local_d_prev, win_d, win_changed);
 
 
