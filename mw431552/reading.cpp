@@ -85,9 +85,9 @@ int local_to_global_index(int local_idx, int rank, int total_vertices, int num_p
 }
 
 
-int local_index(int v, int local_vertex_count) {
-    return v % local_vertex_count;
-}
+// int local_index(int v, int local_vertex_count) {
+//     return v % local_vertex_count;
+// }
 
 void relax_edge(
     int u, Edge& e, int rank, int num_vertices, int num_procs,
@@ -97,7 +97,7 @@ void relax_edge(
     MPI_Win& win_d, MPI_Win& win_changed
 ) {
     int local_vertex_count = local_d.size();
-    long long d_u = local_d[local_index(u, local_vertex_count)];
+    long long d_u = local_d[global_to_local_index(u, rank, num_vertices, num_procs)];
 
     int v = e.v2;
     long long w = e.weight;
@@ -256,7 +256,7 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
     }
 
     if (owner(root, num_vertices, num_procs) == rank) {
-        int li = local_index(root, local_vertex_count);
+        int li = global_to_local_index(root, rank, num_vertices, num_procs);
         local_d[li] = 0;
         local_d_prev[li] = 0;
         buckets[0].insert(root);
@@ -364,7 +364,7 @@ void relax_edge_IOS(
 ) {
     cout << "relax IOS" << endl;
     int local_vertex_count = local_d.size();
-    long long d_u = local_d[local_index(u, local_vertex_count)];
+    long long d_u = local_d[global_to_local_index(u, rank, num_vertices, num_procs)];
 
     int v = e.v2;
     long long w = e.weight;
@@ -455,7 +455,7 @@ unordered_map<int, long long> delta_stepping_IOS(unordered_map<int, Vertex> vert
     }
 
     if (owner(root, num_vertices, num_procs) == rank) {
-        int li = local_index(root, local_vertex_count);
+        int li = global_to_local_index(root, rank, num_vertices, num_procs);
         local_d[li] = 0;
         local_d_prev[li] = 0;
         buckets[0].insert(root);
@@ -572,7 +572,9 @@ long long local_pull(
     const vector<long long>& local_d,
     long long k,                // current bucket index
     double delta,
-    int w_max                   // max edge weight
+    int w_max,
+    int num_vertices,
+    int num_procs                  // max edge weight
 ) {
     long long pull_volume = 0;
     long long pull_requests = 0;
@@ -581,7 +583,7 @@ long long local_pull(
         int v_id = it.first;
         Vertex vertex = it.second;
 
-        long long d_v = local_d[local_index(v_id, local_d.size())]; // local_d is local per process
+        long long d_v = local_d[global_to_local_index(u, rank, num_vertices, num_procs)]; // local_d is local per process
 
         // Only consider vertices that are *not* in current bucket
         if ((d_v / delta) > k) {
@@ -934,7 +936,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
         }
 
         long long local_push_count = local_push(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight);
-        long long local_pull_count = local_pull(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight);
+        long long local_pull_count = local_pull(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight, num_vertices, num_procs);
 
         long long total_push;
         long long total_pull;
@@ -1055,7 +1057,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
     }
 
     if (owner(root, num_vertices, num_procs) == rank) {
-        int li = local_index(root, local_vertex_count);
+        int li = global_to_local_index(root, rank, num_vertices, num_procs);
         local_d[li] = 0;
         local_d_prev[li] = 0;
         buckets[0].insert(root);
