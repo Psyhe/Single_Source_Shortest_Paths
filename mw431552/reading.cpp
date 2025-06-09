@@ -640,7 +640,7 @@ void pull_model_process_long_edges(
         long long d_v = local_d[local_index(vertex.id, local_d.size())];
         if ((d_v / delta) > k) {
             for (const auto& edge : vertex.edges) {
-                int u = edge.v2;
+                int u = edge.v1;
                 long long w = edge.weight;
 
                 if (w < d_v - k * delta) {  // pruning condition
@@ -703,7 +703,7 @@ void pull_model_process_long_edges(
             long long d_u = local_d[local_index(u, local_d.size())];
             if ((d_u / delta) == k) {
                 for (const Edge& e : vertex_mapping[u].edges) {
-                    if (e.v2 == v) {
+                    if (e.v1 == v) {
                         int owner_v = owner(v, num_vertices, num_procs);
                         responses_to_send[owner_v].push_back({v, d_u, e.weight});
                         break;
