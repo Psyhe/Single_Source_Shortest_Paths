@@ -313,7 +313,7 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
 
             cout << "Buckets in rank: " << rank << endl;
             for (auto &it: buckets) {
-                if (!(buckets[it.first]).empty()) {
+                if (!(buckets[it.first]).empty() && k==INF/delta) {
                     cout << "k" << it.first << endl;
                     for (auto &it1: buckets[it.first]) {
                         cout << it1 << " ";
