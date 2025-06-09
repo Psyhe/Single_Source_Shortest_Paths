@@ -289,7 +289,7 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
             break;
         }
 
-        k = get_global_min_bucket;
+        k = global_min_bucket;
         set<int> A = buckets[k];
         bool filled_buckets = 0;
         for (const auto& b : buckets) {
