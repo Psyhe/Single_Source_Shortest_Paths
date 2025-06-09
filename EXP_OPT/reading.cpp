@@ -790,13 +790,13 @@ struct PullResponse {
 
 
 struct Request {
-    int requester; //This has to be weight so that all elements are of the same size
-    int neighbor; //-||-
+    long long requester; //This has to be weight so that all elements are of the same size
+    long long neighbor; //-||-
     long long edge_weight;
 };
 
 struct Response {
-    int node; //This has to be weight so that all elements are of the same size
+    long long node; //This has to be weight so that all elements are of the same size
     long long tentative_distance;
 };
 
@@ -839,8 +839,8 @@ void pull_model(
     }
 
     // Flatten and send requests
-    std::vector<int> sendcounts(num_procs), recvcounts(num_procs);
-    std::vector<int> sdispls(num_procs), rdispls(num_procs);
+    std::vector<long long> sendcounts(num_procs), recvcounts(num_procs);
+    std::vector<long long> sdispls(num_procs), rdispls(num_procs);
     std::vector<long long> sendbuf;
 
 
