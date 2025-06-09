@@ -247,7 +247,7 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
 
     unordered_map<long long, set<int>> buckets;
 
-    int starting_point = rank * local_vertex_count;
+    int starting_point = local_to_global_index(0, rank, num_vertices, num_procs);
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         if (global_id != root) {
@@ -346,7 +346,7 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
     // cout << endl;
 
     unordered_map<int, long long> result;
-    starting_point = rank * local_vertex_count;
+    starting_point = local_to_global_index(0, rank, num_vertices, num_procs);
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         result[global_id] = local_d[i];
@@ -446,7 +446,8 @@ unordered_map<int, long long> delta_stepping_IOS(unordered_map<int, Vertex> vert
 
     unordered_map<long long, set<int>> buckets;
 
-    int starting_point = rank * local_vertex_count;
+    int starting_point = local_to_global_index(0, rank, num_vertices, num_procs);
+
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         if (global_id != root) {
@@ -512,7 +513,8 @@ unordered_map<int, long long> delta_stepping_IOS(unordered_map<int, Vertex> vert
     MPI_Win_free(&win_changed);
 
     unordered_map<int, long long> result;
-    starting_point = rank * local_vertex_count;
+    starting_point = local_to_global_index(0, rank, num_vertices, num_procs);
+
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         result[global_id] = local_d[i];
@@ -886,7 +888,8 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
 
     unordered_map<long long, set<int>> buckets;
 
-    int starting_point = rank * local_vertex_count;
+    int starting_point = local_to_global_index(0, rank, num_vertices, num_procs);
+
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         if (global_id != root) {
@@ -991,7 +994,8 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
     MPI_Win_free(&win_changed);
 
     unordered_map<int, long long> result;
-    starting_point = rank * local_vertex_count;
+    starting_point = local_to_global_index(0, rank, num_vertices, num_procs);
+
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         result[global_id] = local_d[i];
@@ -1049,7 +1053,8 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
 
     unordered_map<long long, set<int>> buckets;
 
-    int starting_point = rank * local_vertex_count;
+    int starting_point = local_to_global_index(0, rank, num_vertices, num_procs);
+
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         if (global_id != root) {
@@ -1231,7 +1236,8 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
     MPI_Win_free(&win_changed);
 
     unordered_map<int, long long> result;
-    starting_point = rank * local_vertex_count;
+    starting_point = local_to_global_index(0, rank, num_vertices, num_procs);
+
     for (int i = 0; i < local_vertex_count; ++i) {
         int global_id = starting_point + i;
         result[global_id] = local_d[i];
