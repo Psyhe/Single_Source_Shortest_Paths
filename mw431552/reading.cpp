@@ -770,6 +770,7 @@ void pull_model_process_long_edges(
     cout << " Step 5: Apply Responses: " << rank << " current k: " << k << endl;
     // ==================== Step 5: Apply Responses ====================
     for (const auto& resp : flat_resp_recv_buf) {
+        cout << "PROCESSING RESPONSE v:" << resp.v << " d_u:" << resp.d_u << " weight:" << resp.weight << endl;
         int v = resp.v;
         long long d_u = resp.d_u;
         long long w = resp.weight;
