@@ -995,7 +995,8 @@ int algorithm_opt(
     MPI_Win& win_d,
     MPI_Win& win_changed,
     long long& local_processed_vertices,
-    long long& total_processed_vertices
+    long long& total_processed_vertices,
+    long long real_max_weight
 ) {
     // All vertices in A will be processed within this bucket
     set<int>  set_of_processed_vertices;
@@ -1007,8 +1008,10 @@ int algorithm_opt(
     while (global_flag) {
         set_of_processed_vertices.insert(A.begin(), A.end());
 
-        process_bucket_first_phase_IOS(A, vertex_mapping, rank, num_vertices, num_procs,
-                    local_d, local_changed, local_d_prev, win_d, win_changed);
+        process_bucket_first_phase_IOS(
+            A, vertex_mapping, rank, num_vertices, num_procs,
+            local_d, local_changed, local_d_prev, win_d, win_changed, k
+        );
 
         intersect_and_check_active_set(
             A, buckets, local_d, local_changed, local_d_prev,
@@ -1190,7 +1193,8 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
                 A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
                 local_d, local_changed, local_d_prev,
                 win_d, win_changed,
-                local_processed_vertices, total_processed_vertices
+                local_processed_vertices, total_processed_vertices,
+                real_max_weight
             );
             if (break_the_loop) {
                 break;
