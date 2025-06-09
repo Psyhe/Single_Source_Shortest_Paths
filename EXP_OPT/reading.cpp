@@ -1039,7 +1039,7 @@ int algorithm_opt(
         // process short outer edges first, not to forget them later
 
         loop_process_bucket_outer_short_phase(
-            A, vertex_mapping, buckets, rank, num_vertices, num_procs,
+            buckets[k], vertex_mapping, buckets, rank, num_vertices, num_procs,
             local_d, local_changed, local_d_prev, win_d, win_changed, k
         );
 
