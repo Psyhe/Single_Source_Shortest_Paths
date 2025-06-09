@@ -710,6 +710,7 @@ void pull_model_process_long_edges(
                 for (const Edge& e : vertex_mapping[u].edges) {
                     if (e.v2 == v) {
                         int owner_v = owner(v, num_vertices, num_procs);
+                        cout << "RESPONSE CREATED " << v << " " << u << " " << d_u << " " << e.weight << endl;
                         responses_to_send[owner_v].push_back({v, u, d_u, e.weight});
                         break;
                     }
