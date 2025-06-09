@@ -1008,7 +1008,7 @@ int algorithm_opt(
     while (global_flag) {
         set_of_processed_vertices.insert(A.begin(), A.end());
 
-        process_bucket_first_phase_IOS(
+        process_bucket_outer_short(
             A, vertex_mapping, rank, num_vertices, num_procs,
             local_d, local_changed, local_d_prev, win_d, win_changed, k
         );
