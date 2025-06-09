@@ -1040,6 +1040,10 @@ int algorithm_opt(
         process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
                     local_d, local_changed, local_d_prev, win_d, win_changed);
 
+        set<int> A_prim = update_buckets_and_collect_active_set(
+            local_d, local_changed, local_d_prev, buckets,
+            rank, num_vertices, num_procs, k
+        );        
 
         // cout << "opt pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
         pull_model_process_long_edges(
