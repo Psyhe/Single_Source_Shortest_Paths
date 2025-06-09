@@ -1019,6 +1019,41 @@ int algorithm_opt(
         );
     }
 
+    // global_flag = 1;
+    // local_flag = 1;
+    // A = buckets[k];
+    // while (global_flag) {
+    //     set_of_processed_vertices.insert(A.begin(), A.end());
+
+    //     process_bucket_outer_short(
+    //         A, vertex_mapping, rank, num_vertices, num_procs,
+    //         local_d, local_changed, local_d_prev, win_d, win_changed
+    //     );
+
+    //     intersect_and_check_active_set(
+    //         A, buckets, local_d, local_changed, local_d_prev,
+    //         rank, num_vertices, num_procs, k, global_flag
+    //     );
+    // }
+
+    // prunning
+
+    long long local_push_count = local_push(
+        buckets[k], vertex_mapping, local_d, k, delta, real_max_weight
+    );
+    long long local_pull_count = local_pull(
+        buckets[k], vertex_mapping, local_d, k, delta, real_max_weight,
+        rank, num_vertices, num_procs
+    );
+
+    long long total_push, total_pull;
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Allreduce(&local_push_count, &total_push, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_pull_count, &total_pull, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+
+
     global_flag = 1;
     local_flag = 1;
     A = buckets[k];
@@ -1036,21 +1071,7 @@ int algorithm_opt(
         );
     }
 
-    // prunning
 
-    long long local_push_count = local_push(
-        buckets[k], vertex_mapping, local_d, k, delta, real_max_weight
-    );
-    long long local_pull_count = local_pull(
-        buckets[k], vertex_mapping, local_d, k, delta, real_max_weight,
-        rank, num_vertices, num_procs
-    );
-
-    long long total_push, total_pull;
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Allreduce(&local_push_count, &total_push, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Allreduce(&local_pull_count, &total_pull, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 
     if (total_pull < total_push) {
 
