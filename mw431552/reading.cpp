@@ -530,8 +530,7 @@ void process_bucket_pull_model(
     MPI_Barrier(MPI_COMM_WORLD);
 }
 
-
-bool should_use_pull_model(
+long long local_push(
     const set<int>& current_bucket,
     const unordered_map<int, Vertex>& vertex_mapping,
     const vector<long long>& local_d,
@@ -539,11 +538,8 @@ bool should_use_pull_model(
     double delta,
     int w_max                   // max edge weight
 ) {
-    // Estimate communication cost for push and pull
     long long push_volume = 0;
-    long long pull_requests = 0;
 
-    // --- Push Volume Estimation: total long edges in current bucket ---
     for (int u : current_bucket) {
         auto it = vertex_mapping.find(u);
         if (it != vertex_mapping.end()) {
@@ -556,11 +552,20 @@ bool should_use_pull_model(
         }
     }
 
-    // --- Pull Volume Estimation: requests from later buckets ---
-    // We assume edge weights are uniformly distributed in [0, w_max]
-    // So, for each vertex v, expected edges in [Δ, d(v) - kΔ - 1] = degree × ((d(v) - (k+1)Δ) / w_max)
+    return push_volume;
+}
 
-    // for (const auto& [v_id, vertex] : vertex_mapping) {
+long long local_pull(
+    const set<int>& current_bucket,
+    const unordered_map<int, Vertex>& vertex_mapping,
+    const vector<long long>& local_d,
+    long long k,                // current bucket index
+    double delta,
+    int w_max                   // max edge weight
+) {
+    long long pull_volume = 0;
+    long long pull_requests = 0;
+
     for (auto& it: vertex_mapping) {
         int v_id = it.first;
         Vertex vertex = it.second;
@@ -577,12 +582,64 @@ bool should_use_pull_model(
         }
     }
 
-    // Responses ≈ requests (as mentioned in the paper)
-    long long pull_volume = 2 * pull_requests;
+    pull_volume = 2 * pull_requests;
 
-    // Compare estimated volumes
-    return pull_volume < push_volume;
+    return pull_volume;
 }
+
+// bool should_use_pull_model(
+//     const set<int>& current_bucket,
+//     const unordered_map<int, Vertex>& vertex_mapping,
+//     const vector<long long>& local_d,
+//     long long k,                // current bucket index
+//     double delta,
+//     int w_max                   // max edge weight
+// ) {
+//     // Estimate communication cost for push and pull
+//     long long push_volume = 0;
+//     long long pull_requests = 0;
+
+//     // --- Push Volume Estimation: total long edges in current bucket ---
+//     for (int u : current_bucket) {
+//         auto it = vertex_mapping.find(u);
+//         if (it != vertex_mapping.end()) {
+//             const Vertex& v = it->second;
+//             for (const Edge& e : v.edges) {
+//                 if (e.weight > delta) {
+//                     push_volume++;
+//                 }
+//             }
+//         }
+//     }
+
+//     // --- Pull Volume Estimation: requests from later buckets ---
+//     // We assume edge weights are uniformly distributed in [0, w_max]
+//     // So, for each vertex v, expected edges in [Δ, d(v) - kΔ - 1] = degree × ((d(v) - (k+1)Δ) / w_max)
+
+//     // for (const auto& [v_id, vertex] : vertex_mapping) {
+//     for (auto& it: vertex_mapping) {
+//         int v_id = it.first;
+//         Vertex vertex = it.second;
+
+//         long long d_v = local_d[local_index(v_id, local_d.size())]; // local_d is local per process
+
+//         // Only consider vertices that are *not* in current bucket
+//         if ((d_v / delta) > k) {
+//             double range_upper = d_v - (k + 1) * delta;
+//             if (range_upper > 0) {
+//                 double fraction = range_upper / w_max;
+//                 pull_requests += static_cast<long long>(vertex.edges.size() * fraction);
+//             }
+//         }
+//     }
+
+//     // Responses ≈ requests (as mentioned in the paper)
+//     long long pull_volume = 2 * pull_requests;
+
+//     cout << 
+//     // Compare estimated volumes
+//     return pull_volume < push_volume;
+// }
 
 
 void process_bucket_outer_short(
@@ -865,8 +922,19 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
         }
 
+        long long local_push_count = local_push(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight);
+        long long local_pull_count = local_pull(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight);
+
+        long long total_push;
+        long long total_pull;
+
+        MPI_Barrier(MPI_COMM_WORLD); 
+        MPI_Allreduce(&local_push_count, &total_push, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(&local_pull_count, &total_pull, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+
         // if (true){
-        if (false) {
+        if (total_pull < total_push) {
             //  outer short edge processing
             // process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
             //     local_d, local_changed, local_d_prev, win_d, win_changed);
