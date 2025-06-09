@@ -615,6 +615,7 @@ struct PullRequest {
 
 struct PullResponse {
     int v;
+    int u;
     long long d_u;
     long long weight;
 };
@@ -709,7 +710,7 @@ void pull_model_process_long_edges(
                 for (const Edge& e : vertex_mapping[u].edges) {
                     if (e.v2 == v) {
                         int owner_v = owner(v, num_vertices, num_procs);
-                        responses_to_send[owner_v].push_back({v, d_u, e.weight});
+                        responses_to_send[owner_v].push_back({v, u, d_u, e.weight});
                         break;
                     }
                 }
@@ -774,7 +775,7 @@ void pull_model_process_long_edges(
     cout << " Step 5: Apply Responses: " << rank << " current k: " << k << endl;
     // ==================== Step 5: Apply Responses ====================
     for (const auto& resp : flat_resp_recv_buf) {
-        cout << "PROCESSING RESPONSE v:" << resp.v << " d_u:" << resp.d_u << " weight:" << resp.weight << endl;
+        cout << "PROCESSING RESPONSE v:" << resp.v " u:" << resp.u << " d_u:" << resp.d_u << " weight:" << resp.weight << endl;
         int v = resp.v;
         long long d_u = resp.d_u;
         long long w = resp.weight;
