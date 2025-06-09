@@ -1244,10 +1244,10 @@ void algorithm_pruning(
 
         MPI_Barrier(MPI_COMM_WORLD);
 
-        set<int> A_prim = update_buckets_and_collect_active_set(
-            local_d, local_changed, local_d_prev, buckets,
-            rank, num_vertices, num_procs, k
-        );
+        // set<int> A_prim = update_buckets_and_collect_active_set(
+        //     local_d, local_changed, local_d_prev, buckets,
+        //     rank, num_vertices, num_procs, k
+        // );
     // } else {
         // process_bucket(
         //     buckets[k], vertex_mapping, rank, num_vertices, num_procs,
