@@ -1037,7 +1037,7 @@ int algorithm_opt(
 
     if (total_pull < total_push) {
         // process short outer edges first, not to forget them later
-        process_bucket_outer_short(A, vertex_mapping, rank, num_vertices, num_procs,
+        process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
                     local_d, local_changed, local_d_prev, win_d, win_changed);
 
 
@@ -1065,9 +1065,6 @@ int algorithm_opt(
             rank, num_vertices, num_procs, k
         );
     }
-
-
-
 
     // Hybrid part
     local_processed_vertices += set_of_processed_vertices.size();
