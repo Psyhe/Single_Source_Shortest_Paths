@@ -193,13 +193,13 @@ void try_update_distance_and_flag_changed(
     }
     MPI_Win_unlock(owner_rank, win_d);
 
-    if (new_d < current_dv) {
-        long long updated = 1;
-        MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0, win_changed);
-        MPI_Put(&updated, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_changed);
-        MPI_Win_flush(owner_rank, win_changed);
-        MPI_Win_unlock(owner_rank, win_changed);
-    }
+    // if (new_d < current_dv) {
+    //     long long updated = 1;
+    //     MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0, win_changed);
+    //     MPI_Put(&updated, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_changed);
+    //     MPI_Win_flush(owner_rank, win_changed);
+    //     MPI_Win_unlock(owner_rank, win_changed);
+    // }
 }
 
 void relax_edge(
@@ -328,7 +328,7 @@ set<int> update_buckets_and_collect_active_set(
     int local_vertex_count = local_d.size();
 
     for (int i = 0; i < local_vertex_count; i++) {
-        if (local_changed[i] == 1) {
+        if (local_d_prev[i] != local_d[i]) {
             long long old_bucket = local_d_prev[i] / delta;
             long long new_bucket = local_d[i] / delta;
             int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
@@ -343,7 +343,6 @@ set<int> update_buckets_and_collect_active_set(
             }
 
             local_d_prev[i] = local_d[i];
-            local_changed[i] = 0;
         }
     }
 
@@ -359,7 +358,7 @@ set<int> update_set_and_collect_active(
     int local_vertex_count = local_d.size();
 
     for (int i = 0; i < local_vertex_count; i++) {
-        if (local_changed[i] == 1) {
+        if (local_d_prev[i] != local_d[i]) {
             int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
             if (local_d_prev[i] > local_d[i]) {
                 current_set.insert(global_id);
@@ -370,7 +369,6 @@ set<int> update_set_and_collect_active(
             }
 
             local_d_prev[i] = local_d[i];
-            local_changed[i] = 0;
         }
     }
 
@@ -1036,8 +1034,6 @@ int algorithm_opt(
     MPI_Allreduce(&local_processed_vertices, &total_processed_vertices, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 
     if (total_processed_vertices > (tau * num_vertices)) {
-        // Process everything from remaining buckets at once
-        // cout << "OPT hybrid part !!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
         A.clear();
         set<int> result;
 
@@ -1062,26 +1058,6 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
     vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_changed(local_vertex_count, 0);
     vector<long long> local_d_prev(local_vertex_count, INF);
-
-
-    // if (option == BASIC) {
-    //     // cout << "BASIC" << endl;
-    // }
-    // else if (option == IOS) {
-    //     // cout << "IOS" << endl;
-    // }
-    // else if (option == PRUNING) {
-    //     // cout << "PRUNING" << endl;
-    // }
-    // else if (option == HYBRID) {
-    //     // cout << "HYBRID" << endl;
-    // }
-    // else if (option == OPT) {
-    //     // cout << "OPT" << endl;
-    // }
-    // else {
-    //     cerr << "Incorrect opt" << endl;
-    // }
 
     // Setup MPI Windows
     MPI_Win win_d, win_changed;
@@ -1243,7 +1219,7 @@ int main(int argc, char** argv) {
         my_vertices[i].degree = my_vertices[i].edges.size();
     }
 
-    // cout << "Processing" << endl;
+    cout << "Processing" << endl;
 
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC, start_vertex, end_vertex);
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, IOS, start_vertex, end_vertex);
