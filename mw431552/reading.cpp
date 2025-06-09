@@ -909,7 +909,7 @@ int algorithm_hybrid(
     MPI_Win& win_d,
     MPI_Win& win_changed,
     long long& local_processed_vertices,
-    long long& total_processed_vertices,
+    long long& total_processed_vertices
 ) {
     // All vertices in A will be processed within this bucket
     set<int>  set_of_processed_vertices;
@@ -1013,6 +1013,8 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
         }
         else if (option == IOS) {
             algorithm_ios(A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
+                                    local_d, local_changed, local_d_prev, win_d, win_changed);
+            algorithm_ios(A, vertex_mapping, buckets, k, rank, num_vertices, num_procs, 
                                     local_d, local_changed, local_d_prev, win_d, win_changed);
         }
         else if (option == PRUNING) {
