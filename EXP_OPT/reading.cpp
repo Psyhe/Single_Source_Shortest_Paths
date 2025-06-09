@@ -1092,9 +1092,9 @@ int algorithm_opt(
 
 
 
-    if (total_pull < total_push) {
+    // if (total_pull < total_push) {
 
-        MPI_Barrier(MPI_COMM_WORLD);
+    //     MPI_Barrier(MPI_COMM_WORLD);
 
         // global_flag = 1;
         // local_flag = 1;
@@ -1135,18 +1135,18 @@ int algorithm_opt(
             local_d, local_changed, local_d_prev, buckets,
             rank, num_vertices, num_procs, k
         );
-    } else {
-        // both short outer and long edges
-        process_bucket(
-            buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed
-        );
+    // } else {
+    //     // both short outer and long edges
+    //     process_bucket(
+    //         buckets[k], vertex_mapping, rank, num_vertices, num_procs,
+    //         local_d, local_changed, local_d_prev, win_d, win_changed
+    //     );
 
-        set<int> A_prim = update_buckets_and_collect_active_set(
-            local_d, local_changed, local_d_prev, buckets,
-            rank, num_vertices, num_procs, k
-        );
-    }
+    //     set<int> A_prim = update_buckets_and_collect_active_set(
+    //         local_d, local_changed, local_d_prev, buckets,
+    //         rank, num_vertices, num_procs, k
+    //     );
+    // }
 
     // Hybrid part
     local_processed_vertices += set_of_processed_vertices.size();
