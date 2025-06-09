@@ -800,7 +800,7 @@ void algorithm_ios(
     set<int>& A,
     unordered_map<int, Vertex>& vertex_mapping,
     unordered_map<long long, set<int>>& buckets,
-    int& k,
+    long long& k,
     int rank,
     int num_vertices,
     int num_procs,
@@ -836,7 +836,7 @@ void algorithm_pruning(
     set<int>& A,
     unordered_map<int, Vertex>& vertex_mapping,
     unordered_map<long long, set<int>>& buckets,
-    int& k,
+    long long& k,
     int rank,
     int num_vertices,
     int num_procs,
@@ -899,7 +899,7 @@ int algorithm_hybrid(
     set<int>& A,
     unordered_map<int, Vertex>& vertex_mapping,
     unordered_map<long long, set<int>>& buckets,
-    int& k,
+    long long& k,
     int rank,
     int num_vertices,
     int num_procs,
@@ -962,7 +962,7 @@ int algorithm_hybrid(
     return 0;
 }
 
-unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices, const int option) {
+unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices, long long max_weight, const int option) {
     cout << "Beginning of processing algorithm" << endl;
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
     vector<long long> local_d(local_vertex_count, INF);
@@ -1123,7 +1123,7 @@ int main(int argc, char** argv) {
 
     cout << "Processing" << endl;
 
-    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, BASIC);
+    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
