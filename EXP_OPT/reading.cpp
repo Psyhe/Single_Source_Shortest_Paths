@@ -968,198 +968,6 @@ void pull_model(
 
 
 
-
-
-
-
-
-
-
-
-// struct PullRequest {
-//     int requester_v;
-//     int u;
-// };
-
-// struct PullResponse {
-//     int v;
-//     int u;
-//     long long d_u;
-//     long long weight;
-// };
-
-// void pull_model_process_long_edges(
-//     long long k,
-//     unordered_map<int, Vertex>& vertex_mapping,
-//     vector<long long>& local_d,
-//     vector<long long>& local_changed,
-//     int rank,
-//     int num_procs,
-//     int num_vertices,
-//     int delta
-// ) {
-//     vector<vector<PullRequest>> requests_to_send(num_procs);
-
-//     for (const auto& [id, vertex] : vertex_mapping) {
-//         long long d_v = local_d[global_to_local_index(vertex.id, rank, num_vertices, num_procs)];
-//         if ((d_v / delta) > k) {
-//             for (const auto& edge : vertex.edges) {
-//                 int u = edge.v2;
-//                 long long w = edge.weight;
-
-//                 if (w < d_v - k * delta) {
-//                     int owner_u = owner(u, num_vertices, num_procs);
-//                     requests_to_send[owner_u].push_back({vertex.id, u});
-//                 }
-//             }
-//         }
-//     }
-
-//     MPI_Barrier(MPI_COMM_WORLD);
-
-//     vector<int> send_counts(num_procs), recv_counts(num_procs);
-//     vector<int> send_displs(num_procs), recv_displs(num_procs);
-
-//     for (int i = 0; i < num_procs; ++i)
-//         send_counts[i] = requests_to_send[i].size();
-
-//     MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
-
-//     int total_send = accumulate(send_counts.begin(), send_counts.end(), 0);
-//     int total_recv = accumulate(recv_counts.begin(), recv_counts.end(), 0);
-
-//     vector<PullRequest> flat_send_buf(total_send), flat_recv_buf(total_recv);
-
-//     int offset = 0;
-//     for (int i = 0; i < num_procs; ++i) {
-//         send_displs[i] = offset;
-//         copy(requests_to_send[i].begin(), requests_to_send[i].end(), flat_send_buf.begin() + offset);
-//         offset += send_counts[i];
-//     }
-
-//     recv_displs[0] = 0;
-//     for (int i = 1; i < num_procs; ++i)
-//         recv_displs[i] = recv_displs[i - 1] + recv_counts[i - 1];
-
-//     // Create MPI datatype for PullRequest
-//     MPI_Datatype MPI_PULL_REQ;
-//     int block_lengths_req[2] = {1, 1};
-//     MPI_Aint displs_req[2];
-//     MPI_Datatype types_req[2] = {MPI_INT, MPI_INT};
-//     PullRequest dummy_req;
-//     MPI_Aint base_req;
-//     MPI_Get_address(&dummy_req, &base_req);
-//     MPI_Get_address(&dummy_req.requester_v, &displs_req[0]);
-//     MPI_Get_address(&dummy_req.u, &displs_req[1]);
-//     for (int i = 0; i < 2; ++i)
-//         displs_req[i] -= base_req;
-//     MPI_Type_create_struct(2, block_lengths_req, displs_req, types_req, &MPI_PULL_REQ);
-//     MPI_Type_commit(&MPI_PULL_REQ);
-
-//     MPI_Alltoallv(
-//         flat_send_buf.data(), send_counts.data(), send_displs.data(), MPI_PULL_REQ,
-//         flat_recv_buf.data(), recv_counts.data(), recv_displs.data(), MPI_PULL_REQ,
-//         MPI_COMM_WORLD
-//     );
-//     MPI_Type_free(&MPI_PULL_REQ);
-
-//     MPI_Barrier(MPI_COMM_WORLD);
-
-//     vector<vector<PullResponse>> responses_to_send(num_procs);
-
-//     for (const auto& req : flat_recv_buf) {
-//         int v = req.requester_v;
-//         int u = req.u;
-
-//         if (vertex_mapping.count(u)) {
-//             long long d_u = local_d[global_to_local_index(u, rank, num_vertices, num_procs)];
-//             if ((d_u / delta) == k) {
-//                 for (const Edge& e : vertex_mapping[u].edges) {
-//                     if (e.v2 == v) {
-//                         int owner_v = owner(v, num_vertices, num_procs);
-//                         responses_to_send[owner_v].push_back({v, u, d_u, e.weight});
-//                         break;
-//                     }
-//                 }
-//             }
-//         }
-//     }
-
-//     MPI_Barrier(MPI_COMM_WORLD);
-
-//     for (int i = 0; i < num_procs; ++i)
-//         send_counts[i] = responses_to_send[i].size();
-
-//     MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
-
-//     total_send = accumulate(send_counts.begin(), send_counts.end(), 0);
-//     total_recv = accumulate(recv_counts.begin(), recv_counts.end(), 0);
-
-//     vector<PullResponse> flat_resp_send_buf(total_send), flat_resp_recv_buf(total_recv);
-
-//     offset = 0;
-//     for (int i = 0; i < num_procs; ++i) {
-//         send_displs[i] = offset;
-//         copy(responses_to_send[i].begin(), responses_to_send[i].end(), flat_resp_send_buf.begin() + offset);
-//         offset += send_counts[i];
-//     }
-
-//     recv_displs[0] = 0;
-//     for (int i = 1; i < num_procs; ++i)
-//         recv_displs[i] = recv_displs[i - 1] + recv_counts[i - 1];
-
-//     // Create MPI datatype for PullResponse
-//     MPI_Datatype MPI_PULL_RESP;
-//     int block_lengths_resp[4] = {1, 1, 1, 1};
-//     MPI_Aint displs_resp[4];
-//     MPI_Datatype types_resp[4] = {MPI_INT, MPI_INT, MPI_LONG_LONG, MPI_LONG_LONG};
-//     PullResponse dummy_resp;
-//     MPI_Aint base_resp;
-//     MPI_Get_address(&dummy_resp, &base_resp);
-//     MPI_Get_address(&dummy_resp.v, &displs_resp[0]);
-//     MPI_Get_address(&dummy_resp.u, &displs_resp[1]);
-//     MPI_Get_address(&dummy_resp.d_u, &displs_resp[2]);
-//     MPI_Get_address(&dummy_resp.weight, &displs_resp[3]);
-//     for (int i = 0; i < 4; ++i)
-//         displs_resp[i] -= base_resp;
-//     MPI_Type_create_struct(4, block_lengths_resp, displs_resp, types_resp, &MPI_PULL_RESP);
-//     MPI_Type_commit(&MPI_PULL_RESP);
-
-//     MPI_Alltoallv(
-//         flat_resp_send_buf.data(), send_counts.data(), send_displs.data(), MPI_PULL_RESP,
-//         flat_resp_recv_buf.data(), recv_counts.data(), recv_displs.data(), MPI_PULL_RESP,
-//         MPI_COMM_WORLD
-//     );
-
-//     MPI_Type_free(&MPI_PULL_RESP);
-//     MPI_Barrier(MPI_COMM_WORLD);
-
-//     for (const auto& resp : flat_resp_recv_buf) {
-//         int v = resp.v;
-//         long long d_u = resp.d_u;
-//         long long w = resp.weight;
-//         int local_idx = global_to_local_index(v, rank, num_vertices, num_procs);
-//         long long& d_v = local_d[local_idx];
-//         long long new_d = d_u + w;
-//         if (new_d < d_v) {
-//             d_v = new_d;
-//             local_changed[local_idx] = 1;
-//         }
-//     }
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
 void algorithm_ios(
     set<int>& A,
     unordered_map<int, Vertex>& vertex_mapping,
@@ -1192,9 +1000,6 @@ void algorithm_ios(
 
     buckets[k].clear();
 }
-
-
-
 
 void algorithm_pruning(
     set<int>& A,
@@ -1233,32 +1038,24 @@ void algorithm_pruning(
     MPI_Allreduce(&local_push_count, &total_push, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(&local_pull_count, &total_pull, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 
-    // if (total_pull < total_push) {
-        // cout << "pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
-        // pull_model_process_long_edges(
-        //     k, vertex_mapping, local_d, local_changed,
-        //     rank, num_procs, num_vertices, delta
-        // );
+    if (total_pull < total_push) {
+
         set<int> active;
         pull_model(vertex_mapping, local_d, local_changed, k, rank, num_procs, num_vertices, buckets, active, start_vertex, end_vertex);
 
         MPI_Barrier(MPI_COMM_WORLD);
 
-        // set<int> A_prim = update_buckets_and_collect_active_set(
-        //     local_d, local_changed, local_d_prev, buckets,
-        //     rank, num_vertices, num_procs, k
-        // );
-    // } else {
-        // process_bucket(
-        //     buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-        //     local_d, local_changed, local_d_prev, win_d, win_changed
-        // );
+    } else {
+        process_bucket(
+            buckets[k], vertex_mapping, rank, num_vertices, num_procs,
+            local_d, local_changed, local_d_prev, win_d, win_changed
+        );
 
-        // set<int> A_prim = update_buckets_and_collect_active_set(
-        //     local_d, local_changed, local_d_prev, buckets,
-        //     rank, num_vertices, num_procs, k
-        // );
-    // }
+        set<int> A_prim = update_buckets_and_collect_active_set(
+            local_d, local_changed, local_d_prev, buckets,
+            rank, num_vertices, num_procs, k
+        );
+    }
 
     buckets[k].clear();
 }
@@ -1364,7 +1161,9 @@ int algorithm_opt(
     MPI_Win& win_changed,
     long long& local_processed_vertices,
     long long& total_processed_vertices,
-    long long real_max_weight
+    long long real_max_weight,
+    int start_vertex,
+    int end_vertex
 ) {
     // All vertices in A will be processed within this bucket
     set<int>  set_of_processed_vertices;
@@ -1387,44 +1186,6 @@ int algorithm_opt(
         );
     }
 
-    // global_flag = 1;
-    // local_flag = 1;
-    // A = buckets[k];
-    // while (global_flag) {
-    //     set_of_processed_vertices.insert(A.begin(), A.end());
-
-    //     process_bucket_outer_short(
-    //         A, vertex_mapping, rank, num_vertices, num_procs,
-    //         local_d, local_changed, local_d_prev, win_d, win_changed
-    //     );
-
-    //     intersect_and_check_active_set(
-    //         A, buckets, local_d, local_changed, local_d_prev,
-    //         rank, num_vertices, num_procs, k, global_flag
-    //     );
-    // }
-
-    // prunning
-
-
-    //     global_flag = 1;
-    // local_flag = 1;
-    // A = buckets[k];
-    // while (global_flag) {
-    //     set_of_processed_vertices.insert(A.begin(), A.end());
-
-    //     process_bucket_outer_short(
-    //         A, vertex_mapping, rank, num_vertices, num_procs,
-    //         local_d, local_changed, local_d_prev, win_d, win_changed
-    //     );
-
-    //     intersect_and_check_active_set(
-    //         A, buckets, local_d, local_changed, local_d_prev,
-    //         rank, num_vertices, num_procs, k, global_flag
-    //     );
-    // }
-
-
     long long local_push_count = local_push(
         buckets[k], vertex_mapping, local_d, k, delta, real_max_weight
     );
@@ -1439,33 +1200,9 @@ int algorithm_opt(
     MPI_Allreduce(&local_push_count, &total_push, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(&local_pull_count, &total_pull, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 
-
-
-    // global_flag = 1;
-    // local_flag = 1;
-    // A = buckets[k];
-    // while (global_flag) {
-    //     set_of_processed_vertices.insert(A.begin(), A.end());
-
-    //     process_bucket_outer_short(
-    //         A, vertex_mapping, rank, num_vertices, num_procs,
-    //         local_d, local_changed, local_d_prev, win_d, win_changed
-    //     );
-
-    //     intersect_and_check_active_set(
-    //         A, buckets, local_d, local_changed, local_d_prev,
-    //         rank, num_vertices, num_procs, k, global_flag
-    //     );
-    // }
-
-
-
     if (total_pull < total_push) {
 
         MPI_Barrier(MPI_COMM_WORLD);
-
-        global_flag = 1;
-        local_flag = 1;
         
         process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
                     local_d, local_changed, local_d_prev, win_d, win_changed);
@@ -1475,25 +1212,12 @@ int algorithm_opt(
             rank, num_vertices, num_procs, k
         );        
 
-
-        MPI_Barrier(MPI_COMM_WORLD);
-        
-        // cout << "opt pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
-
-        // TODO TODO TODO
-
-
-        // pull_model_process_long_edges(
-        //     k, vertex_mapping, local_d, local_changed,
-        //     rank, num_procs, num_vertices, delta
-        // );
+        set<int> active;
+        pull_model(vertex_mapping, local_d, local_changed, k, rank, num_procs, num_vertices, buckets, active, start_vertex, end_vertex);
 
         MPI_Barrier(MPI_COMM_WORLD);
 
-        set<int> A_primprim = update_buckets_and_collect_active_set(
-            local_d, local_changed, local_d_prev, buckets,
-            rank, num_vertices, num_procs, k
-        );
+
     } else {
         // both short outer and long edges
         process_bucket(
@@ -1632,7 +1356,7 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
                 local_d, local_changed, local_d_prev,
                 win_d, win_changed,
                 local_processed_vertices, total_processed_vertices,
-                real_max_weight
+                real_max_weight, start_vertex, end_vertex
             );
             if (break_the_loop) {
                 break;
@@ -1726,11 +1450,11 @@ int main(int argc, char** argv) {
 
     // cout << "Processing" << endl;
 
-    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC);
-    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, IOS);
-    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, PRUNING, start_vertex, end_vertex);
-    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, HYBRID);
-    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, OPT);
+    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC, start_vertex, end_vertex);
+    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, IOS, start_vertex, end_vertex);
+    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, PRUNING, start_vertex, end_vertex);
+    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, HYBRID, start_vertex, end_vertex);
+    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, OPT, start_vertex, end_vertex);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
