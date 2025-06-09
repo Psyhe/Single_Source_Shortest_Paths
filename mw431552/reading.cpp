@@ -311,6 +311,15 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
             // }
             // cout << endl;
 
+            cout << "Buckets in rank: " << rank << endl;
+            for (auto &it: buckets) {
+                cout << "k" << it.first << endl;
+                for (auto &it1: buckets[it.first]) {
+                    cout << it1 << " ";
+                }
+            }
+            cout << endl;
+
             local_flag = !(A.size() == 0);
             cout << "Local flag: " << local_flag << "rank: " << rank << " set size: " << A.size()  <<endl;
             cout<< "Current k: " << k << endl;
