@@ -1038,6 +1038,25 @@ int algorithm_opt(
 
     // prunning
 
+
+        global_flag = 1;
+    local_flag = 1;
+    A = buckets[k];
+    while (global_flag) {
+        set_of_processed_vertices.insert(A.begin(), A.end());
+
+        process_bucket_outer_short(
+            A, vertex_mapping, rank, num_vertices, num_procs,
+            local_d, local_changed, local_d_prev, win_d, win_changed
+        );
+
+        intersect_and_check_active_set(
+            A, buckets, local_d, local_changed, local_d_prev,
+            rank, num_vertices, num_procs, k, global_flag
+        );
+    }
+
+
     long long local_push_count = local_push(
         buckets[k], vertex_mapping, local_d, k, delta, real_max_weight
     );
@@ -1054,22 +1073,22 @@ int algorithm_opt(
 
 
 
-    global_flag = 1;
-    local_flag = 1;
-    A = buckets[k];
-    while (global_flag) {
-        set_of_processed_vertices.insert(A.begin(), A.end());
+    // global_flag = 1;
+    // local_flag = 1;
+    // A = buckets[k];
+    // while (global_flag) {
+    //     set_of_processed_vertices.insert(A.begin(), A.end());
 
-        process_bucket_outer_short(
-            A, vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed
-        );
+    //     process_bucket_outer_short(
+    //         A, vertex_mapping, rank, num_vertices, num_procs,
+    //         local_d, local_changed, local_d_prev, win_d, win_changed
+    //     );
 
-        intersect_and_check_active_set(
-            A, buckets, local_d, local_changed, local_d_prev,
-            rank, num_vertices, num_procs, k, global_flag
-        );
-    }
+    //     intersect_and_check_active_set(
+    //         A, buckets, local_d, local_changed, local_d_prev,
+    //         rank, num_vertices, num_procs, k, global_flag
+    //     );
+    // }
 
 
 
