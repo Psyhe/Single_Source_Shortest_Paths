@@ -406,7 +406,7 @@ void process_bucket_first_phase_IOS(
     for (int u : A) {
         Vertex& current_vertex = vertex_mapping[u];
         for (Edge& e : current_vertex.edges) {
-            if (e.weight < delta) {
+            if (e.weight <= delta) {
                 relax_edge_IOS(u, e, rank, num_vertices, num_procs,
                         vertex_mapping, local_d, local_changed, local_d_prev,
                         win_d, win_changed, k);
@@ -595,7 +595,7 @@ void process_bucket_outer_short(
     for (int u : A) {
         Vertex& current_vertex = vertex_mapping[u];
         for (Edge& e : current_vertex.edges) {
-            if (e.weight < delta) {
+            if (e.weight =< delta) {
                 relax_edge(u, e, rank, num_vertices, num_procs,
                         vertex_mapping, local_d, local_changed, local_d_prev,
                         win_d, win_changed);
@@ -640,7 +640,7 @@ void pull_model_process_long_edges(
         long long d_v = local_d[local_index(vertex.id, local_d.size())];
         if ((d_v / delta) > k) {
             for (const auto& edge : vertex.edges) {
-                int u = edge.v2;
+                int u = edge.v1;
                 long long w = edge.weight;
 
                 if (w < d_v - k * delta) {  // pruning condition
