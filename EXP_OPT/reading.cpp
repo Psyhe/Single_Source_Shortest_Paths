@@ -939,7 +939,7 @@ void pull_model(
         if (v >= start_node && v <= end_node) {
             // int v_local = global_to_local[v];
 
-            int v_local = global_to_local_index(v, rank, total_recv, num_procs);
+            int v_local = global_to_local_index(v, rank, num_vertices, num_procs);
 
             long long old_dist = local_d[v_local];
             //std::cout << "PROCESS " << rank << " CHECKS " << new_dist <<" < " << old_dist << "?" << std::endl;
