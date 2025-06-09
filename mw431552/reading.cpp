@@ -610,7 +610,7 @@ void process_bucket_outer_short(
 struct PullRequest {
     int requester_v; // global id of v
     int u;           // global id of u
-    long long current_k;
+    // long long current_k;
 };
 
 struct PullResponse {
@@ -664,7 +664,7 @@ void pull_model_process_long_edges(
     for (int i = 0; i < num_procs; ++i)
     {
         for (auto xd : requests_to_send[i])
-        cout << "SENDING REQUEST TO PROC " << i << " FOR " << xd.current_k << " " << xd.requester_v << " " << xd.u << endl;
+        cout << "SENDING REQUEST TO PROC " << i << " FOR "  << " " << xd.requester_v << " " << xd.u << endl;
         send_counts[i] = requests_to_send[i].size();
     }
 
