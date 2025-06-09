@@ -31,7 +31,7 @@ struct Vertex {
 };
 
 
-int get_global_min_bucket(unordered_map<long long, unordered_set<int>>& buckets) 
+long long get_global_min_bucket(unordered_map<long long, set<int>>& buckets) 
 {
     int local_min_bucket = INF;
     for (const auto& [idx, nodes] : buckets) 
