@@ -1019,6 +1019,23 @@ int algorithm_opt(
         );
     }
 
+    global_flag = 1;
+    local_flag = 1;
+    A = buckets[k];
+    while (global_flag) {
+        set_of_processed_vertices.insert(A.begin(), A.end());
+
+        process_bucket_outer_short(
+            A, vertex_mapping, rank, num_vertices, num_procs,
+            local_d, local_changed, local_d_prev, win_d, win_changed
+        );
+
+        intersect_and_check_active_set(
+            A, buckets, local_d, local_changed, local_d_prev,
+            rank, num_vertices, num_procs, k, global_flag
+        );
+    }
+
     // prunning
 
     long long local_push_count = local_push(
@@ -1037,30 +1054,13 @@ int algorithm_opt(
 
     if (total_pull < total_push) {
 
-
         MPI_Barrier(MPI_COMM_WORLD);
 
-
-
-
-        global_flag = 1;
-        local_flag = 1;
+        // global_flag = 1;
+        // local_flag = 1;
 
         // this part is from IOS - processing short inner edges first
-        A = buckets[k];
-        while (global_flag) {
-            set_of_processed_vertices.insert(A.begin(), A.end());
 
-            process_bucket_outer_short(
-                A, vertex_mapping, rank, num_vertices, num_procs,
-                local_d, local_changed, local_d_prev, win_d, win_changed
-            );
-
-            intersect_and_check_active_set(
-                A, buckets, local_d, local_changed, local_d_prev,
-                rank, num_vertices, num_procs, k, global_flag
-            );
-        }
 
 
 
