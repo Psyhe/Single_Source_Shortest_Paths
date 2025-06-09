@@ -879,6 +879,15 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
                 local_d, local_changed, local_d_prev, buckets,
                 rank, num_vertices, num_procs, k
             );
+
+            cout << "WHAT BUCKETS ARE LEFT:" << endl;
+            for (auto &it: buckets) {
+                cout << "k: " << it.first << endl;
+                for (auto &it1: buckets[it.first]) {
+                    cout << it1 << " ";
+                }
+                cout << endl;
+            }
         }
         else {
             // Default way
