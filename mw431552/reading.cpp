@@ -573,6 +573,7 @@ long long local_pull(
     long long k,                // current bucket index
     double delta,
     int w_max,
+    int rank,
     int num_vertices,
     int num_procs                  // max edge weight
 ) {
@@ -708,7 +709,7 @@ void pull_model_process_long_edges(
         int id = it.first;
         Vertex vertex = it.second;
 
-        long long d_v = local_d[local_index(vertex.id, local_d.size())];
+        long long d_v = local_d[global_to_local_index(vertex.id, rank, num_vertices, num_procs)];
         if ((d_v / delta) > k) {
             for (const auto& edge : vertex.edges) {
                 int u = edge.v2;
@@ -775,7 +776,7 @@ void pull_model_process_long_edges(
         int u = req.u;
 
         if (vertex_mapping.count(u)) {
-            long long d_u = local_d[local_index(u, local_d.size())];
+            long long d_u = local_d[global_to_local_index(vertex.id, rank, num_vertices, num_procs)];
             if ((d_u / delta) == k) {
                 for (const Edge& e : vertex_mapping[u].edges) {
                     if (e.v2 == v) {
@@ -851,7 +852,7 @@ void pull_model_process_long_edges(
         long long d_u = resp.d_u;
         long long w = resp.weight;
 
-        int local_idx = local_index(v, local_d.size());
+        int local_idx = global_to_local_index(v, rank, num_vertices, num_procs);
         long long& d_v = local_d[local_idx];
         long long new_d = d_u + w;
         cout << "CURRENT INDEX" << v << endl;
@@ -894,7 +895,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
     }
 
     if (owner(root, num_vertices, num_procs) == rank) {
-        int li = local_index(root, local_vertex_count);
+        int li = global_to_local_index(root, rank, num_vertices, num_procs);
         local_d[li] = 0;
         local_d_prev[li] = 0;
         buckets[0].insert(root);
@@ -936,7 +937,7 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
         }
 
         long long local_push_count = local_push(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight);
-        long long local_pull_count = local_pull(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight, num_vertices, num_procs);
+        long long local_pull_count = local_pull(buckets[k], vertex_mapping, local_d, k, delta, real_max_weight, rank, num_vertices, num_procs);
 
         long long total_push;
         long long total_pull;
