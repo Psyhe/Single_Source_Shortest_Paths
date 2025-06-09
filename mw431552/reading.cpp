@@ -1319,7 +1319,7 @@ int main(int argc, char** argv) {
         my_vertices[i].degree = my_vertices[i].edges.size();
     }
 
-    // cout << "Processing with IOS" << endl;
+    cout << "Processing" << endl;
     unordered_map<int, long long> final_values = delta_stepping_basic(my_vertices, global_root, rank, num_processes, num_vertices);
     // unordered_map<int, long long> final_values = delta_stepping_prunning(my_vertices, global_root, rank, num_processes, num_vertices, max_weight);
     // unordered_map<int, long long> final_values = delta_stepping_hybrid(my_vertices, global_root, rank, num_processes, num_vertices);
