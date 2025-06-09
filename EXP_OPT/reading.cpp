@@ -179,8 +179,7 @@ void try_update_distance_and_flag_changed(
     int owner_rank,
     int local_idx,
     long long new_d,
-    MPI_Win& win_d,
-    MPI_Win& win_changed
+    MPI_Win& win_d
 ) {
     MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0, win_d);
     long long current_dv;
@@ -195,19 +194,19 @@ void try_update_distance_and_flag_changed(
 
     // if (new_d < current_dv) {
     //     long long updated = 1;
-    //     MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0, win_changed);
-    //     MPI_Put(&updated, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG, win_changed);
-    //     MPI_Win_flush(owner_rank, win_changed);
-    //     MPI_Win_unlock(owner_rank, win_changed);
+    //     MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0 );
+    //     MPI_Put(&updated, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG );
+    //     MPI_Win_flush(owner_rank );
+    //     MPI_Win_unlock(owner_rank );
     // }
 }
 
 void relax_edge(
     int u, Edge& e, int rank, int num_vertices, int num_procs,
     unordered_map<int, Vertex>& vertex_mapping,
-    vector<long long>& local_d, vector<long long>& local_changed,
+    vector<long long>& local_d,  
     vector<long long>& local_d_prev,
-    MPI_Win& win_d, MPI_Win& win_changed
+    MPI_Win& win_d
 ) {
     int local_vertex_count = local_d.size();
     long long d_u = local_d[global_to_local_index(u, rank, num_vertices, num_procs)];
@@ -226,16 +225,16 @@ void relax_edge(
     long long new_d = min(d_v, d_u + w);
 
     if (new_d < d_v) {
-        try_update_distance_and_flag_changed(owner_rank, local_idx, new_d, win_d, win_changed);
+        try_update_distance_and_flag_changed(owner_rank, local_idx, new_d, win_d );
     }
 }
 
 void relax_edge_IOS(
     int u, Edge& e, int rank, int num_vertices, int num_procs,
     unordered_map<int, Vertex>& vertex_mapping,
-    vector<long long>& local_d, vector<long long>& local_changed,
+    vector<long long>& local_d,  
     vector<long long>& local_d_prev,
-    MPI_Win& win_d, MPI_Win& win_changed, long long k
+    MPI_Win& win_d, MPI_Win&   long long k
 ) {
     int local_vertex_count = local_d.size();
     long long d_u = local_d[global_to_local_index(u, rank, num_vertices, num_procs)];
@@ -254,23 +253,23 @@ void relax_edge_IOS(
     long long new_d = min(d_v, d_u + w);
 
     if ((new_d < d_v) && (new_d <= ((k+1) * delta - 1))) {
-        try_update_distance_and_flag_changed(owner_rank, local_idx, new_d, win_d, win_changed);
+        try_update_distance_and_flag_changed(owner_rank, local_idx, new_d, win_d );
     }
 }
 
 void process_bucket(
     const set<int>& A, unordered_map<int, Vertex>& vertex_mapping,
     int rank, int num_vertices, int num_procs,
-    vector<long long>& local_d, vector<long long>& local_changed,
+    vector<long long>& local_d,  
     vector<long long>& local_d_prev,
-    MPI_Win& win_d, MPI_Win& win_changed
+    MPI_Win& win_d
 ) {
     for (int u : A) {
         Vertex& current_vertex = vertex_mapping[u];
         for (Edge& e : current_vertex.edges) {
             relax_edge(u, e, rank, num_vertices, num_procs,
-                       vertex_mapping, local_d, local_changed, local_d_prev,
-                       win_d, win_changed);
+                       vertex_mapping, local_d,   local_d_prev,
+                       win_d );
         }
     }
 
@@ -280,17 +279,17 @@ void process_bucket(
 void process_bucket_first_phase_IOS(
     const set<int>& A, unordered_map<int, Vertex>& vertex_mapping,
     int rank, int num_vertices, int num_procs,
-    vector<long long>& local_d, vector<long long>& local_changed,
+    vector<long long>& local_d,  
     vector<long long>& local_d_prev,
-    MPI_Win& win_d, MPI_Win& win_changed, long long k
+    MPI_Win& win_d, MPI_Win&   long long k
 ) {
     for (int u : A) {
         Vertex& current_vertex = vertex_mapping[u];
         for (Edge& e : current_vertex.edges) {
             if (e.weight <= delta) {
                 relax_edge_IOS(u, e, rank, num_vertices, num_procs,
-                        vertex_mapping, local_d, local_changed, local_d_prev,
-                        win_d, win_changed, k);
+                        vertex_mapping, local_d,   local_d_prev,
+                        win_d,   k);
             }
         }
     }
@@ -301,17 +300,17 @@ void process_bucket_first_phase_IOS(
 void process_bucket_outer_short(
     const set<int>& A, unordered_map<int, Vertex>& vertex_mapping,
     int rank, int num_vertices, int num_procs,
-    vector<long long>& local_d, vector<long long>& local_changed,
+    vector<long long>& local_d,  
     vector<long long>& local_d_prev,
-    MPI_Win& win_d, MPI_Win& win_changed
+    MPI_Win& win_d
 ) {
     for (int u : A) {
         Vertex& current_vertex = vertex_mapping[u];
         for (Edge& e : current_vertex.edges) {
             if (e.weight <= delta) {
                 relax_edge(u, e, rank, num_vertices, num_procs,
-                        vertex_mapping, local_d, local_changed, local_d_prev,
-                        win_d, win_changed);
+                        vertex_mapping, local_d,   local_d_prev,
+                        win_d );
             }
         }
     }
@@ -320,7 +319,7 @@ void process_bucket_outer_short(
 }
 
 set<int> update_buckets_and_collect_active_set(
-    vector<long long>& local_d, vector<long long>& local_changed,
+    vector<long long>& local_d,  
     vector<long long>& local_d_prev, unordered_map<long long, set<int>>& buckets,
     int rank, int num_vertices, int num_procs, long long k
 ) {
@@ -350,7 +349,7 @@ set<int> update_buckets_and_collect_active_set(
 }
 
 set<int> update_set_and_collect_active(
-    vector<long long>& local_d, vector<long long>& local_changed,
+    vector<long long>& local_d,  
     vector<long long>& local_d_prev, set<int>& current_set,
     int rank, int num_vertices, int num_procs
 ) {
@@ -379,7 +378,7 @@ void intersect_and_check_active_set(
     set<int>& A,
     unordered_map<long long, set<int>>& buckets,
     vector<long long>& local_d,
-    vector<long long>& local_changed,
+     
     vector<long long>& local_d_prev,
     int rank,
     int num_vertices,
@@ -388,7 +387,7 @@ void intersect_and_check_active_set(
     int& global_flag
 ) {
     set<int> A_prim = update_buckets_and_collect_active_set(
-        local_d, local_changed, local_d_prev, buckets,
+        local_d,   local_d_prev, buckets,
         rank, num_vertices, num_procs, k
     );
 
@@ -411,20 +410,20 @@ void loop_process_bucket_phase(
     int num_vertices,
     int num_procs,
     vector<long long>& local_d,
-    vector<long long>& local_changed,
+     
     vector<long long>& local_d_prev,
     MPI_Win& win_d,
-    MPI_Win& win_changed,
+    MPI_Win&  
     long long k
 ) {
     int local_flag = 1, global_flag = 1;
 
     while (global_flag) {
         process_bucket(A, vertex_mapping, rank, num_vertices, num_procs,
-                       local_d, local_changed, local_d_prev, win_d, win_changed);
+                       local_d,   local_d_prev, win_d );
 
         intersect_and_check_active_set(
-            A, buckets, local_d, local_changed, local_d_prev,
+            A, buckets, local_d,   local_d_prev,
             rank, num_vertices, num_procs, k, global_flag
         );
     }
@@ -438,10 +437,10 @@ void loop_process_bucket_phase_ios(
     int num_vertices,
     int num_procs,
     vector<long long>& local_d,
-    vector<long long>& local_changed,
+     
     vector<long long>& local_d_prev,
     MPI_Win& win_d,
-    MPI_Win& win_changed,
+    MPI_Win&  
     long long k
 ) {
     int local_flag = 1, global_flag = 1;
@@ -449,11 +448,11 @@ void loop_process_bucket_phase_ios(
     while (global_flag) {
         process_bucket_first_phase_IOS(
             A, vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed, k
+            local_d,   local_d_prev, win_d,   k
         );
 
         intersect_and_check_active_set(
-            A, buckets, local_d, local_changed, local_d_prev,
+            A, buckets, local_d,   local_d_prev,
             rank, num_vertices, num_procs, k, global_flag
         );
     }
@@ -467,10 +466,10 @@ void loop_process_bucket_outer_short_phase(
     int num_vertices,
     int num_procs,
     vector<long long>& local_d,
-    vector<long long>& local_changed,
+     
     vector<long long>& local_d_prev,
     MPI_Win& win_d,
-    MPI_Win& win_changed,
+    MPI_Win&  
     long long k
 ) {
     int local_flag = 1, global_flag = 1;
@@ -478,11 +477,11 @@ void loop_process_bucket_outer_short_phase(
     while (global_flag) {
         process_bucket_outer_short(
             A, vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed
+            local_d,   local_d_prev, win_d 
         );
 
         intersect_and_check_active_set(
-            A, buckets, local_d, local_changed, local_d_prev,
+            A, buckets, local_d,   local_d_prev,
             rank, num_vertices, num_procs, k, global_flag
         );
     }
@@ -495,10 +494,9 @@ void loop_process_dynamic_bucket_phase_hybrid(
     int num_vertices,
     int num_procs,
     vector<long long>& local_d,
-    vector<long long>& local_changed,
+     
     vector<long long>& local_d_prev,
-    MPI_Win& win_d,
-    MPI_Win& win_changed
+    MPI_Win& win_d
 ) {
     int local_flag = 1, global_flag = 1;
 
@@ -509,14 +507,14 @@ void loop_process_dynamic_bucket_phase_hybrid(
 
         process_bucket(
             current, vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed
+            local_d,   local_d_prev, win_d 
         );
 
         MPI_Barrier(MPI_COMM_WORLD);
 
         // THIS PART DIFFERS FROM intersect_and_check_active_set !
         set<int> A_prim = update_set_and_collect_active(
-            local_d, local_changed, local_d_prev, current,
+            local_d,   local_d_prev, current,
             rank, num_vertices, num_procs
         );
 
@@ -609,7 +607,7 @@ struct Response {
 void pull_model(
     unordered_map<int, Vertex>& vertex_mapping,
     vector<long long>& local_d,
-    vector<long long>& local_changed,
+     
     vector<long long>& local_d_prev,
 
     long long k,
@@ -774,24 +772,23 @@ void algorithm_ios(
     int num_vertices,
     int num_procs,
     vector<long long>& local_d,
-    vector<long long>& local_changed,
+     
     vector<long long>& local_d_prev,
-    MPI_Win& win_d,
-    MPI_Win& win_changed
+    MPI_Win& win_d
 ) {
     loop_process_bucket_phase_ios(
         A, vertex_mapping, buckets, rank, num_vertices, num_procs,
-        local_d, local_changed, local_d_prev, win_d, win_changed, k
+        local_d,   local_d_prev, win_d,   k
     );
 
     // Process long edges and outer short edges
     process_bucket(
         buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-        local_d, local_changed, local_d_prev, win_d, win_changed
+        local_d,   local_d_prev, win_d 
     );
 
     set<int> A_prim = update_buckets_and_collect_active_set(
-        local_d, local_changed, local_d_prev, buckets,
+        local_d,   local_d_prev, buckets,
         rank, num_vertices, num_procs, k
     );
 
@@ -807,10 +804,10 @@ void algorithm_pruning(
     int num_vertices,
     int num_procs,
     vector<long long>& local_d,
-    vector<long long>& local_changed,
+     
     vector<long long>& local_d_prev,
     MPI_Win& win_d,
-    MPI_Win& win_changed,
+    MPI_Win&  
     long long delta,
     long long real_max_weight,
     int start_vertex,
@@ -818,7 +815,7 @@ void algorithm_pruning(
 ) {
     loop_process_bucket_outer_short_phase(
         A, vertex_mapping, buckets, rank, num_vertices, num_procs,
-        local_d, local_changed, local_d_prev, win_d, win_changed, k
+        local_d,   local_d_prev, win_d,   k
     );
 
     long long local_push_count = local_push(
@@ -837,18 +834,18 @@ void algorithm_pruning(
 
     if (total_pull < total_push) {
 
-        pull_model(vertex_mapping, local_d, local_changed, local_d_prev, k, rank, num_procs, num_vertices, buckets, start_vertex, end_vertex);
+        pull_model(vertex_mapping, local_d,   local_d_prev, k, rank, num_procs, num_vertices, buckets, start_vertex, end_vertex);
 
         MPI_Barrier(MPI_COMM_WORLD);
 
     } else {
         process_bucket(
             buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed
+            local_d,   local_d_prev, win_d 
         );
 
         set<int> A_prim = update_buckets_and_collect_active_set(
-            local_d, local_changed, local_d_prev, buckets,
+            local_d,   local_d_prev, buckets,
             rank, num_vertices, num_procs, k
         );
     }
@@ -866,10 +863,10 @@ int algorithm_hybrid(
     int num_vertices,
     int num_procs,
     vector<long long>& local_d,
-    vector<long long>& local_changed,
+     
     vector<long long>& local_d_prev,
     MPI_Win& win_d,
-    MPI_Win& win_changed,
+    MPI_Win&  
     long long& local_processed_vertices,
     long long& total_processed_vertices
 ) {
@@ -883,10 +880,10 @@ int algorithm_hybrid(
         set_of_processed_vertices.insert(A.begin(), A.end());
 
         process_bucket(A, vertex_mapping, rank, num_vertices, num_procs,
-                    local_d, local_changed, local_d_prev, win_d, win_changed);
+                    local_d,   local_d_prev, win_d );
 
         set<int> A_prim = update_buckets_and_collect_active_set(
-            local_d, local_changed, local_d_prev, buckets,
+            local_d,   local_d_prev, buckets,
             rank, num_vertices, num_procs, k
         );
 
@@ -918,7 +915,7 @@ int algorithm_hybrid(
 
         loop_process_dynamic_bucket_phase_hybrid(
             result, vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed
+            local_d,   local_d_prev, win_d 
         );
         return 1;
     }
@@ -951,10 +948,10 @@ int algorithm_opt(
     int num_vertices,
     int num_procs,
     vector<long long>& local_d,
-    vector<long long>& local_changed,
+     
     vector<long long>& local_d_prev,
     MPI_Win& win_d,
-    MPI_Win& win_changed,
+    MPI_Win&  
     long long& local_processed_vertices,
     long long& total_processed_vertices,
     long long real_max_weight,
@@ -973,11 +970,11 @@ int algorithm_opt(
 
         process_bucket_first_phase_IOS(
             A, vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed, k
+            local_d,   local_d_prev, win_d,   k
         );
 
         intersect_and_check_active_set(
-            A, buckets, local_d, local_changed, local_d_prev,
+            A, buckets, local_d,   local_d_prev,
             rank, num_vertices, num_procs, k, global_flag
         );
     }
@@ -1001,14 +998,14 @@ int algorithm_opt(
         MPI_Barrier(MPI_COMM_WORLD);
         
         process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-                    local_d, local_changed, local_d_prev, win_d, win_changed);
+                    local_d,   local_d_prev, win_d );
 
         set<int> A_prim = update_buckets_and_collect_active_set(
-            local_d, local_changed, local_d_prev, buckets,
+            local_d,   local_d_prev, buckets,
             rank, num_vertices, num_procs, k
         );        
 
-        pull_model(vertex_mapping, local_d, local_changed, local_d_prev, k, rank, num_procs, num_vertices, buckets, start_vertex, end_vertex);
+        pull_model(vertex_mapping, local_d,   local_d_prev, k, rank, num_procs, num_vertices, buckets, start_vertex, end_vertex);
 
         MPI_Barrier(MPI_COMM_WORLD);
 
@@ -1017,11 +1014,11 @@ int algorithm_opt(
         // both short outer and long edges
         process_bucket(
             buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed
+            local_d,   local_d_prev, win_d 
         );
 
         set<int> A_prim = update_buckets_and_collect_active_set(
-            local_d, local_changed, local_d_prev, buckets,
+            local_d,   local_d_prev, buckets,
             rank, num_vertices, num_procs, k
         );
     }
@@ -1045,7 +1042,7 @@ int algorithm_opt(
 
         loop_process_dynamic_bucket_phase_hybrid(
             result, vertex_mapping, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed
+            local_d,   local_d_prev, win_d 
         );
         return 1;
     }
@@ -1056,17 +1053,13 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
     // cout << "Beginning of processing algorithm" << endl;
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
     vector<long long> local_d(local_vertex_count, INF);
-    vector<long long> local_changed(local_vertex_count, 0);
     vector<long long> local_d_prev(local_vertex_count, INF);
 
     // Setup MPI Windows
-    MPI_Win win_d, win_changed;
+    MPI_Win win_d ;
 
     MPI_Win_create(local_d.data(), local_vertex_count * sizeof(long long),
                    sizeof(long long), MPI_INFO_NULL, MPI_COMM_WORLD, &win_d);
-
-    MPI_Win_create(local_changed.data(), local_vertex_count * sizeof(long long),
-                   sizeof(long long), MPI_INFO_NULL, MPI_COMM_WORLD, &win_changed);
 
     unordered_map<long long, set<int>> buckets = initialize_buckets(
         rank, num_vertices, num_procs, root, local_vertex_count, local_d, local_d_prev
@@ -1100,23 +1093,23 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
 
         if (option == BASIC) {
             loop_process_bucket_phase(A, vertex_mapping, buckets, rank, num_vertices, num_procs,
-                        local_d, local_changed, local_d_prev, win_d, win_changed, k);
+                        local_d,   local_d_prev, win_d,   k);
 
             buckets[k].clear();
         }
         else if (option == IOS) {
             algorithm_ios(A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
-                                    local_d, local_changed, local_d_prev, win_d, win_changed);
+                                    local_d,   local_d_prev, win_d);
         }
         else if (option == PRUNING) {
             algorithm_pruning(A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
-                    local_d, local_changed, local_d_prev, win_d, win_changed, delta, real_max_weight, start_vertex, end_vertex);
+                    local_d,   local_d_prev, win_d,   delta, real_max_weight, start_vertex, end_vertex);
         }
         else if (option == HYBRID) {
             int break_the_loop = algorithm_hybrid(
                 A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
-                local_d, local_changed, local_d_prev,
-                win_d, win_changed,
+                local_d,   local_d_prev,
+                win_d,  
                 local_processed_vertices, total_processed_vertices
             );
             if (break_the_loop) {
@@ -1126,8 +1119,8 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
         else if (option == OPT) {
             int break_the_loop = algorithm_opt(
                 A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
-                local_d, local_changed, local_d_prev,
-                win_d, win_changed,
+                local_d,   local_d_prev,
+                win_d,  
                 local_processed_vertices, total_processed_vertices,
                 real_max_weight, start_vertex, end_vertex
             );
@@ -1143,7 +1136,6 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
     }
 
     MPI_Win_free(&win_d);
-    MPI_Win_free(&win_changed);
 
     return gather_local_distances(local_d, rank, num_vertices, num_procs);
 }
