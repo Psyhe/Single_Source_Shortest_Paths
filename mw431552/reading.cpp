@@ -1009,22 +1009,27 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
         if (!continue_running) break;
 
         if (option == BASIC) {
+            cout << "BASIC" << endl;
             loop_process_bucket_phase(A, vertex_mapping, buckets, rank, num_vertices, num_procs,
                         local_d, local_changed, local_d_prev, win_d, win_changed, k);
 
             buckets[k].clear();
         }
         else if (option == IOS) {
+            cout << "IOS" << endl;
+
             algorithm_ios(A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
-                                    local_d, local_changed, local_d_prev, win_d, win_changed);
-            algorithm_ios(A, vertex_mapping, buckets, k, rank, num_vertices, num_procs, 
                                     local_d, local_changed, local_d_prev, win_d, win_changed);
         }
         else if (option == PRUNING) {
+            cout << "PRUNING" << endl;
+
             algorithm_pruning(A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
                     local_d, local_changed, local_d_prev, win_d, win_changed, delta, real_max_weight);
         }
         else if (option == HYBRID) {
+            cout << "HYBRID" << endl;
+
             int break_the_loop = algorithm_hybrid(
                 A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
                 local_d, local_changed, local_d_prev,
@@ -1126,7 +1131,8 @@ int main(int argc, char** argv) {
 
     cout << "Processing" << endl;
 
-    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC);
+    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC);
+    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, IOS);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
