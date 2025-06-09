@@ -201,10 +201,10 @@ set<int> update_set_and_collect_active(
     for (int i = 0; i < local_vertex_count; i++) {
         if (local_changed[i] == 1) {
             int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
-            cout << "inside update rank:" << rank << " local_id = "<< i << endl;
-            cout << "inside update rank:" << rank << " global_id = "<< global_id << endl;
-            cout << "local_d_prev[i] " << local_d_prev[i] << endl;
-            cout << "local_d[i] " << local_d[i] << endl;
+            // cout << "inside update rank:" << rank << " local_id = "<< i << endl;
+            // cout << "inside update rank:" << rank << " global_id = "<< global_id << endl;
+            // cout << "local_d_prev[i] " << local_d_prev[i] << endl;
+            // cout << "local_d[i] " << local_d[i] << endl;
 
 
             if (local_d_prev[i] > local_d[i]) {
@@ -218,11 +218,11 @@ set<int> update_set_and_collect_active(
             local_d_prev[i] = local_d[i];
             local_changed[i] = 0;
 
-            cout << "Inside update current set" << endl;
+            // cout << "Inside update current set" << endl;
             for (int it: current_set) {
-                cout << it << " ";
+                // cout << it << " ";
             }
-            cout << endl;
+            // cout << endl;
         }
     }
 
@@ -292,39 +292,39 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
             set_intersection(A_prim.begin(), A_prim.end(), buckets[k].begin(), buckets[k].end(),
                             inserter(A, A.begin()));
 
-            // cout << "A_prim rank: " << rank << " set size: " << A_prim.size()  << endl;
+            // // cout << "A_prim rank: " << rank << " set size: " << A_prim.size()  << endl;
             // for (auto &it: A_prim) {
-            //     cout << it << " ";
+            //     // cout << it << " ";
             // }
-            // cout << endl;
+            // // cout << endl;
 
 
-            // cout << "buckets rank: " << rank << " set size: " << buckets[k].size()  <<endl;
+            // // cout << "buckets rank: " << rank << " set size: " << buckets[k].size()  <<endl;
             // for (auto &it: buckets[k]) {
-            //     cout << it << " ";
+            //     // cout << it << " ";
             // }
-            // cout << endl;
+            // // cout << endl;
 
-            // cout << "A rank: " << rank << " set size: " << A.size()  <<endl;
+            // // cout << "A rank: " << rank << " set size: " << A.size()  <<endl;
             // for (auto &it: A) {
-            //     cout << it << " ";
+            //     // cout << it << " ";
             // }
-            // cout << endl;
+            // // cout << endl;
 
-            cout << "Buckets in rank: " << rank << endl;
+            // cout << "Buckets in rank: " << rank << endl;
             for (auto &it: buckets) {
                 if (!(buckets[it.first]).empty() && it.first==INF/delta) {
-                    cout << "k" << it.first << endl;
+                    // cout << "k" << it.first << endl;
                     for (auto &it1: buckets[it.first]) {
-                        cout << it1 << " ";
+                        // cout << it1 << " ";
                     }
                 }
             }
-            cout << endl;
+            // cout << endl;
 
             local_flag = !(A.size() == 0);
-            cout << "Local flag: " << local_flag << "rank: " << rank << " set size: " << A.size()  <<endl;
-            cout<< "Current k: " << k << endl;
+            // cout << "Local flag: " << local_flag << "rank: " << rank << " set size: " << A.size()  <<endl;
+            // cout<< "Current k: " << k << endl;
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
         }
 
@@ -336,14 +336,14 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
     MPI_Win_free(&win_d);
     MPI_Win_free(&win_changed);
 
-    // cout << "rank: " << rank << endl;
+    // // cout << "rank: " << rank << endl;
     // for (auto &it: buckets) {
-    //     cout << "k" << it.first << endl;
+    //     // cout << "k" << it.first << endl;
     //     for (auto &it1: buckets[it.first]) {
-    //         cout << it1 << " ";
+    //         // cout << it1 << " ";
     //     }
     // }
-    // cout << endl;
+    // // cout << endl;
 
     unordered_map<int, long long> result;
     starting_point = local_to_global_index(0, rank, num_vertices, num_procs);
@@ -362,7 +362,7 @@ void relax_edge_IOS(
     vector<long long>& local_d_prev,
     MPI_Win& win_d, MPI_Win& win_changed, long long k
 ) {
-    cout << "relax IOS" << endl;
+    // cout << "relax IOS" << endl;
     int local_vertex_count = local_d.size();
     long long d_u = local_d[global_to_local_index(u, rank, num_vertices, num_procs)];
 
@@ -652,7 +652,7 @@ long long local_pull(
 //     // Responses ≈ requests (as mentioned in the paper)
 //     long long pull_volume = 2 * pull_requests;
 
-//     cout << 
+//     // cout << 
 //     // Compare estimated volumes
 //     return pull_volume < push_volume;
 // }
@@ -704,7 +704,7 @@ void pull_model_process_long_edges(
     int delta
 ) {
     // ==================== Step 1: Build Pull Requests ====================
-    cout << "Step 1: Build Pull Requests: " << rank << endl;
+    // cout << "Step 1: Build Pull Requests: " << rank << endl;
     vector<vector<PullRequest>> requests_to_send(num_procs);
 
     for (const auto& it : vertex_mapping) {
@@ -728,8 +728,8 @@ void pull_model_process_long_edges(
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
     // ==================== Step 2: Exchange Pull Requests ====================
-        cout << "Step 2: Exchange Pull Requests: " << rank << endl;
-        cout<< "Current k: " << k << " for rank: " << rank << endl;
+        // cout << "Step 2: Exchange Pull Requests: " << rank << endl;
+        // cout<< "Current k: " << k << " for rank: " << rank << endl;
 
     vector<int> send_counts(num_procs), recv_counts(num_procs);
     vector<int> send_displs(num_procs), recv_displs(num_procs);
@@ -737,7 +737,7 @@ void pull_model_process_long_edges(
     for (int i = 0; i < num_procs; ++i)
     {
         for (auto xd : requests_to_send[i])
-        cout << "SENDING REQUEST TO PROC " << i << " FOR "  << " " << xd.requester_v << " " << xd.u << endl;
+        // cout << "SENDING REQUEST TO PROC " << i << " FOR "  << " " << xd.requester_v << " " << xd.u << endl;
         send_counts[i] = requests_to_send[i].size();
     }
 
@@ -769,7 +769,7 @@ void pull_model_process_long_edges(
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
     // ==================== Step 3: Process Pull Requests ====================
-    cout << "Step 3: Process Pull Requests: " << rank << endl;
+    // cout << "Step 3: Process Pull Requests: " << rank << endl;
 
     vector<vector<PullResponse>> responses_to_send(num_procs);
 
@@ -783,7 +783,7 @@ void pull_model_process_long_edges(
                 for (const Edge& e : vertex_mapping[u].edges) {
                     if (e.v2 == v) {
                         int owner_v = owner(v, num_vertices, num_procs);
-                        cout << "RESPONSE CREATED " << v << " " << u << " " << d_u << " " << e.weight << endl;
+                        // cout << "RESPONSE CREATED " << v << " " << u << " " << d_u << " " << e.weight << endl;
                         responses_to_send[owner_v].push_back({v, u, d_u, e.weight});
                         break;
                     }
@@ -792,7 +792,7 @@ void pull_model_process_long_edges(
         }
     }
 
-    cout << "Step 4: Exchange Pull Responses: " << rank << " current k: " << k << endl;
+    // cout << "Step 4: Exchange Pull Responses: " << rank << " current k: " << k << endl;
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
     // ==================== Step 4: Exchange Pull Responses ====================
@@ -846,10 +846,10 @@ void pull_model_process_long_edges(
     MPI_Type_free(&MPI_PULL_RESP);
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
-    cout << " Step 5: Apply Responses: " << rank << " current k: " << k << endl;
+    // cout << " Step 5: Apply Responses: " << rank << " current k: " << k << endl;
     // ==================== Step 5: Apply Responses ====================
     for (const auto& resp : flat_resp_recv_buf) {
-        cout << "PROCESSING RESPONSE v:" << resp.v << " u:" << resp.u << " d_u:" << resp.d_u << " weight:" << resp.weight << endl;
+        // cout << "PROCESSING RESPONSE v:" << resp.v << " u:" << resp.u << " d_u:" << resp.d_u << " weight:" << resp.weight << endl;
         int v = resp.v;
         long long d_u = resp.d_u;
         long long w = resp.weight;
@@ -857,7 +857,7 @@ void pull_model_process_long_edges(
         int local_idx = global_to_local_index(v, rank, num_vertices, num_procs);
         long long& d_v = local_d[local_idx];
         long long new_d = d_u + w;
-        cout << "CURRENT INDEX" << v << endl;
+        // cout << "CURRENT INDEX" << v << endl;
 
         if (new_d < d_v) {
             local_d[local_idx] = new_d;
@@ -868,7 +868,7 @@ void pull_model_process_long_edges(
 
 
 unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices, long long local_max_weight) {
-    cout << "prunning" << endl;
+    // cout << "prunning" << endl;
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
     vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_changed(local_vertex_count, 0);
@@ -965,13 +965,13 @@ unordered_map<int, long long> delta_stepping_prunning(unordered_map<int, Vertex>
                 rank, num_vertices, num_procs, k
             );
 
-            cout << "WHAT BUCKETS ARE LEFT:" << endl;
+            // cout << "WHAT BUCKETS ARE LEFT:" << endl;
             for (auto &it: buckets) {
-                cout << "k: " << it.first << endl;
+                // cout << "k: " << it.first << endl;
                 for (auto &it1: buckets[it.first]) {
-                    cout << it1 << " ";
+                    // cout << it1 << " ";
                 }
-                cout << endl;
+                // cout << endl;
             }
         }
         else {
@@ -1036,7 +1036,7 @@ long long update_weight(long long current_max, long long potential) {
 
 
 unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices) {
-    cout << "hybrid" << endl;
+    // cout << "hybrid" << endl;
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
     vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_changed(local_vertex_count, 0);
@@ -1115,7 +1115,7 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
         MPI_Barrier(MPI_COMM_WORLD);
 
         MPI_Allreduce(&local_processed_vertices, &total_processed_vertices, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
-        // cout << "Here I am at rank" << rank <<" my k is: " << k << endl;
+        // // cout << "Here I am at rank" << rank <<" my k is: " << k << endl;
 
         buckets[k].clear();
         k += 1;
@@ -1137,29 +1137,29 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                     
                 }
             }
-            cout << "result rank: " << rank << " set size: " << result.size()  <<endl;
+            // cout << "result rank: " << rank << " set size: " << result.size()  <<endl;
 
             for (auto it: result) {
-                cout << it << " ";
+                // cout << it << " ";
             }
-            cout << endl;
+            // cout << endl;
 
             while (global_flag) {
 
                 if (rank ==3) {
-                    cout << "local_d: " << local_d.size() << " rank: " << rank << endl;
+                    // cout << "local_d: " << local_d.size() << " rank: " << rank << endl;
                     for (long long v: local_d) {
-                        cout << v << " ";
+                        // cout << v << " ";
                     }
-                    cout << endl;
+                    // cout << endl;
                 }
 
                 if (rank ==3) {
-                    cout << "result: " << result.size() << " rank: " << rank << endl;
+                    // cout << "result: " << result.size() << " rank: " << rank << endl;
                     for (long long v: result) {
-                        cout << v << " ";
+                        // cout << v << " ";
                     }
-                    cout << endl;
+                    // cout << endl;
                 }
 
                 MPI_Barrier(MPI_COMM_WORLD);
@@ -1169,19 +1169,19 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                             local_d, local_changed, local_d_prev, win_d, win_changed);
 
                 if (rank ==3) {
-                    cout << "local_d: " << local_d.size() << " rank: " << rank << endl;
+                    // cout << "local_d: " << local_d.size() << " rank: " << rank << endl;
                     for (long long v: local_d) {
-                        cout << v << " ";
+                        // cout << v << " ";
                     }
-                    cout << endl;
+                    // cout << endl;
                 }
 
                 if (rank ==3) {
-                    cout << "local_changed: " << local_changed.size() << " rank: " << rank << endl;
+                    // cout << "local_changed: " << local_changed.size() << " rank: " << rank << endl;
                     for (long long v: local_changed) {
-                        cout << v << " ";
+                        // cout << v << " ";
                     }
-                    cout << endl;
+                    // cout << endl;
                 }
 
                 MPI_Barrier(MPI_COMM_WORLD);
@@ -1193,19 +1193,19 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                 );
 
                 if (rank ==3) {
-                    cout << "local_d: " << local_d.size() << " rank: " << rank << endl;
+                    // cout << "local_d: " << local_d.size() << " rank: " << rank << endl;
                     for (long long v: local_d) {
-                        cout << v << " ";
+                        // cout << v << " ";
                     }
-                    cout << endl;
+                    // cout << endl;
                 }
 
                 if (rank ==3) {
-                    cout << "current: " << current.size() << " rank: " << rank << endl;
+                    // cout << "current: " << current.size() << " rank: " << rank << endl;
                     for (long long v: current) {
-                        cout << v << " ";
+                        // cout << v << " ";
                     }
-                    cout << endl;
+                    // cout << endl;
                 }
 
                 result.clear();
@@ -1215,11 +1215,11 @@ unordered_map<int, long long> delta_stepping_hybrid(unordered_map<int, Vertex> v
                 MPI_Barrier(MPI_COMM_WORLD);
 
                 if (rank == 3) {
-                                 cout << "Result.size: " << result.size() << " rank: " << rank << endl;
+                                 // cout << "Result.size: " << result.size() << " rank: " << rank << endl;
                     for (int i = 0; i< local_vertex_count; i++){
-                        cout <<local_changed[i] << " ";
+                        // cout <<local_changed[i] << " ";
                     }
-                    cout << endl;
+                    // cout << endl;
                 }
 
                 local_flag = !result.empty();
@@ -1265,7 +1265,7 @@ int main(int argc, char** argv) {
     std::string input_file = argv[1];
     std::string output_file = argv[2];
 
-    cout << "My rank is: " << rank << "\n";
+    // cout << "My rank is: " << rank << "\n";
 
     std::ifstream infile(input_file);
     if (!infile.is_open()) {
@@ -1319,7 +1319,7 @@ int main(int argc, char** argv) {
         my_vertices[i].degree = my_vertices[i].edges.size();
     }
 
-    cout << "Processing with IOS" << endl;
+    // cout << "Processing with IOS" << endl;
     unordered_map<int, long long> final_values = delta_stepping_basic(my_vertices, global_root, rank, num_processes, num_vertices);
     // unordered_map<int, long long> final_values = delta_stepping_prunning(my_vertices, global_root, rank, num_processes, num_vertices, max_weight);
     // unordered_map<int, long long> final_values = delta_stepping_hybrid(my_vertices, global_root, rank, num_processes, num_vertices);
