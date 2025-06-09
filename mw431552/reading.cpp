@@ -33,14 +33,14 @@ struct Vertex {
 
 long long get_global_min_bucket(unordered_map<long long, set<int>>& buckets) 
 {
-    int local_min_bucket = INF;
+    long long local_min_bucket = INF;
     for (const auto& [idx, nodes] : buckets) 
     {
         if (!nodes.empty()) 
             local_min_bucket = std::min(local_min_bucket, idx);
     }
-    int global_min_bucket;
-    MPI_Allreduce(&local_min_bucket, &global_min_bucket, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+    long long global_min_bucket;
+    MPI_Allreduce(&local_min_bucket, &global_min_bucket, 1, MPI_LONG_LONG, MPI_MIN, MPI_COMM_WORLD);
     return global_min_bucket;
 }
 
