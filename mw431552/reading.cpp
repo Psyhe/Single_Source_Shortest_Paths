@@ -651,6 +651,8 @@ void pull_model_process_long_edges(
         }
     }
 
+    MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
+
     // ==================== Step 2: Exchange Pull Requests ====================
         cout << "Step 2: Exchange Pull Requests: " << rank << endl;
         cout<< "Current k: " << k << " for rank: " << rank << endl;
@@ -686,6 +688,8 @@ void pull_model_process_long_edges(
         MPI_COMM_WORLD
     );
 
+    MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
+
     // ==================== Step 3: Process Pull Requests ====================
     cout << "Step 3: Process Pull Requests: " << rank << endl;
 
@@ -710,6 +714,7 @@ void pull_model_process_long_edges(
     }
 
     cout << "Step 4: Exchange Pull Responses: " << rank << " current k: " << k << endl;
+    MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
     // ==================== Step 4: Exchange Pull Responses ====================
     for (int i = 0; i < num_procs; ++i)
@@ -760,6 +765,7 @@ void pull_model_process_long_edges(
     );
 
     MPI_Type_free(&MPI_PULL_RESP);
+    MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
     cout << " Step 5: Apply Responses: " << rank << " current k: " << k << endl;
     // ==================== Step 5: Apply Responses ====================
