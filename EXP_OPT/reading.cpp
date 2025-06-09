@@ -612,8 +612,7 @@ void pull_model_process_long_edges(
     int rank,
     int num_procs,
     int num_vertices,
-    int delta,
-    
+    int delta
 ) {
     // ==================== Step 1: Build Pull Requests ====================
     // // cout << "Step 1: Build Pull Requests: " << rank << endl;
