@@ -868,6 +868,7 @@ void algorithm_pruning(
     MPI_Allreduce(&local_pull_count, &total_pull, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 
     if (total_pull < total_push) {
+        cout << "pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
         pull_model_process_long_edges(
             k, vertex_mapping, local_d, local_changed,
             rank, num_procs, num_vertices, delta
@@ -944,6 +945,7 @@ int algorithm_hybrid(
 
     if (total_processed_vertices > (tau * num_vertices)) {
         // Process everything from remaining buckets at once
+        cout << "HYBRID !!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
         A.clear();
         set<int> result;
 
@@ -968,6 +970,26 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
     vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_changed(local_vertex_count, 0);
     vector<long long> local_d_prev(local_vertex_count, INF);
+
+
+    if (option == BASIC) {
+        cout << "BASIC" << endl;
+    }
+    else if (option == IOS) {
+        cout << "IOS" << endl;
+    }
+    else if (option == PRUNING) {
+        cout << "PRUNING" << endl;
+    }
+    else if (option == HYBRID) {
+        cout << "HYBRID" << endl;
+    }
+    else if (option == OPT) {
+        cout << "OPT placeholder" << endl;
+    }
+    else {
+        cerr << "Incorrect opt" << endl;
+    }
 
     // Setup MPI Windows
     MPI_Win win_d, win_changed;
@@ -1133,7 +1155,8 @@ int main(int argc, char** argv) {
 
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC);
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, IOS);
-    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, PRUNING);
+    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, PRUNING);
+    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, HYBRID);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
