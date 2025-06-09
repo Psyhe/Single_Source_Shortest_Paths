@@ -634,7 +634,7 @@ void pull_model_process_long_edges(
     int delta
 ) {
     // ==================== Step 1: Build Pull Requests ====================
-    // cout << "Step 1: Build Pull Requests: " << rank << endl;
+    // // cout << "Step 1: Build Pull Requests: " << rank << endl;
     vector<vector<PullRequest>> requests_to_send(num_procs);
 
     for (const auto& it : vertex_mapping) {
@@ -658,8 +658,8 @@ void pull_model_process_long_edges(
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
     // ==================== Step 2: Exchange Pull Requests ====================
-        // cout << "Step 2: Exchange Pull Requests: " << rank << endl;
-        // cout<< "Current k: " << k << " for rank: " << rank << endl;
+        // // cout << "Step 2: Exchange Pull Requests: " << rank << endl;
+        // // cout<< "Current k: " << k << " for rank: " << rank << endl;
 
     vector<int> send_counts(num_procs), recv_counts(num_procs);
     vector<int> send_displs(num_procs), recv_displs(num_procs);
@@ -667,7 +667,7 @@ void pull_model_process_long_edges(
     for (int i = 0; i < num_procs; ++i)
     {
         for (auto xd : requests_to_send[i])
-        // cout << "SENDING REQUEST TO PROC " << i << " FOR "  << " " << xd.requester_v << " " << xd.u << endl;
+        // // cout << "SENDING REQUEST TO PROC " << i << " FOR "  << " " << xd.requester_v << " " << xd.u << endl;
         send_counts[i] = requests_to_send[i].size();
     }
 
@@ -699,7 +699,7 @@ void pull_model_process_long_edges(
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
     // ==================== Step 3: Process Pull Requests ====================
-    // cout << "Step 3: Process Pull Requests: " << rank << endl;
+    // // cout << "Step 3: Process Pull Requests: " << rank << endl;
 
     vector<vector<PullResponse>> responses_to_send(num_procs);
 
@@ -713,7 +713,7 @@ void pull_model_process_long_edges(
                 for (const Edge& e : vertex_mapping[u].edges) {
                     if (e.v2 == v) {
                         int owner_v = owner(v, num_vertices, num_procs);
-                        // cout << "RESPONSE CREATED " << v << " " << u << " " << d_u << " " << e.weight << endl;
+                        // // cout << "RESPONSE CREATED " << v << " " << u << " " << d_u << " " << e.weight << endl;
                         responses_to_send[owner_v].push_back({v, u, d_u, e.weight});
                         break;
                     }
@@ -722,7 +722,7 @@ void pull_model_process_long_edges(
         }
     }
 
-    // cout << "Step 4: Exchange Pull Responses: " << rank << " current k: " << k << endl;
+    // // cout << "Step 4: Exchange Pull Responses: " << rank << " current k: " << k << endl;
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
     // ==================== Step 4: Exchange Pull Responses ====================
@@ -776,10 +776,10 @@ void pull_model_process_long_edges(
     MPI_Type_free(&MPI_PULL_RESP);
     MPI_Barrier(MPI_COMM_WORLD); // Ensure window is ready
 
-    // cout << " Step 5: Apply Responses: " << rank << " current k: " << k << endl;
+    // // cout << " Step 5: Apply Responses: " << rank << " current k: " << k << endl;
     // ==================== Step 5: Apply Responses ====================
     for (const auto& resp : flat_resp_recv_buf) {
-        // cout << "PROCESSING RESPONSE v:" << resp.v << " u:" << resp.u << " d_u:" << resp.d_u << " weight:" << resp.weight << endl;
+        // // cout << "PROCESSING RESPONSE v:" << resp.v << " u:" << resp.u << " d_u:" << resp.d_u << " weight:" << resp.weight << endl;
         int v = resp.v;
         long long d_u = resp.d_u;
         long long w = resp.weight;
@@ -787,7 +787,7 @@ void pull_model_process_long_edges(
         int local_idx = global_to_local_index(v, rank, num_vertices, num_procs);
         long long& d_v = local_d[local_idx];
         long long new_d = d_u + w;
-        // cout << "CURRENT INDEX" << v << endl;
+        // // cout << "CURRENT INDEX" << v << endl;
 
         if (new_d < d_v) {
             local_d[local_idx] = new_d;
@@ -868,7 +868,7 @@ void algorithm_pruning(
     MPI_Allreduce(&local_pull_count, &total_pull, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 
     if (total_pull < total_push) {
-        cout << "pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
+        // cout << "pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
         pull_model_process_long_edges(
             k, vertex_mapping, local_d, local_changed,
             rank, num_procs, num_vertices, delta
@@ -945,7 +945,7 @@ int algorithm_hybrid(
 
     if (total_processed_vertices > (tau * num_vertices)) {
         // Process everything from remaining buckets at once
-        cout << "HYBRID !!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+        // cout << "HYBRID !!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
         A.clear();
         set<int> result;
 
@@ -1041,7 +1041,7 @@ int algorithm_opt(
                     local_d, local_changed, local_d_prev, win_d, win_changed);
 
 
-        cout << "opt pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
+        // cout << "opt pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
         pull_model_process_long_edges(
             k, vertex_mapping, local_d, local_changed,
             rank, num_procs, num_vertices, delta
@@ -1078,7 +1078,7 @@ int algorithm_opt(
 
     if (total_processed_vertices > (tau * num_vertices)) {
         // Process everything from remaining buckets at once
-        cout << "OPT hybrid part !!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+        // cout << "OPT hybrid part !!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
         A.clear();
         set<int> result;
 
@@ -1098,31 +1098,31 @@ int algorithm_opt(
 }
 
 unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mapping, int root, int rank, int num_procs, int num_vertices, long long max_weight, const int option) {
-    cout << "Beginning of processing algorithm" << endl;
+    // cout << "Beginning of processing algorithm" << endl;
     int local_vertex_count = vertices_for_rank(rank, num_vertices, num_procs);
     vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_changed(local_vertex_count, 0);
     vector<long long> local_d_prev(local_vertex_count, INF);
 
 
-    if (option == BASIC) {
-        cout << "BASIC" << endl;
-    }
-    else if (option == IOS) {
-        cout << "IOS" << endl;
-    }
-    else if (option == PRUNING) {
-        cout << "PRUNING" << endl;
-    }
-    else if (option == HYBRID) {
-        cout << "HYBRID" << endl;
-    }
-    else if (option == OPT) {
-        cout << "OPT" << endl;
-    }
-    else {
-        cerr << "Incorrect opt" << endl;
-    }
+    // if (option == BASIC) {
+    //     // cout << "BASIC" << endl;
+    // }
+    // else if (option == IOS) {
+    //     // cout << "IOS" << endl;
+    // }
+    // else if (option == PRUNING) {
+    //     // cout << "PRUNING" << endl;
+    // }
+    // else if (option == HYBRID) {
+    //     // cout << "HYBRID" << endl;
+    // }
+    // else if (option == OPT) {
+    //     // cout << "OPT" << endl;
+    // }
+    // else {
+    //     cerr << "Incorrect opt" << endl;
+    // }
 
     // Setup MPI Windows
     MPI_Win win_d, win_changed;
@@ -1232,7 +1232,7 @@ int main(int argc, char** argv) {
     std::string input_file = argv[1];
     std::string output_file = argv[2];
 
-    // cout << "My rank is: " << rank << "\n";
+    // // cout << "My rank is: " << rank << "\n";
 
     std::ifstream infile(input_file);
     if (!infile.is_open()) {
@@ -1286,13 +1286,13 @@ int main(int argc, char** argv) {
         my_vertices[i].degree = my_vertices[i].edges.size();
     }
 
-    cout << "Processing" << endl;
+    // cout << "Processing" << endl;
 
-    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC);
+    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC);
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, IOS);
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, PRUNING);
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, HYBRID);
-    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, OPT);
+    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, OPT);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);

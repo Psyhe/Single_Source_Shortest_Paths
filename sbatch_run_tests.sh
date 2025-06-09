@@ -1,9 +1,9 @@
 #!/bin/bash -l
 #SBATCH --job-name sssp-tests
-#SBATCH --output output.txt
+#SBATCH --output output_test_prev.txt
 #SBATCH --account "g101-2284"
-#SBATCH --nodes 2
-#SBATCH --ntasks-per-node 5
+#SBATCH --nodes 1
+#SBATCH --ntasks-per-node 24
 #SBATCH --time 00:10:00
 
 module load common/python/3.11
