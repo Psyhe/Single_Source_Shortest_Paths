@@ -812,7 +812,7 @@ void pull_model(
     int rank,
     int num_procs,
     int num_vertices, //total_nodes,
-    unordered_map<long long, set<int>> buckets, //   
+    unordered_map<long long, set<int>>& buckets, //   
     set<int>& active_bucket_indices,
     int start_node,
     int end_node
