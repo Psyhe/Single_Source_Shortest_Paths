@@ -1021,7 +1021,7 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
                                     local_d, local_changed, local_d_prev, win_d, win_changed);
         }
         else if (option == PRUNING) {
-            pruning(A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
+            algorithm_pruning(A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
                     local_d, local_changed, local_d_prev, win_d, win_changed, delta, real_max_weight);
         }
         else if (option == HYBRID) {
