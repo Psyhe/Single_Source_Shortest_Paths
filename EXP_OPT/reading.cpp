@@ -893,7 +893,7 @@ void pull_model(
 
         if (buckets[k].count(u) > 0) {
             long long new_dist = du + w;
-            outgoing_responses[get_owner(requester, num_vertices, num_procs)].push_back({requester, new_dist});
+            outgoing_responses[owner(requester, num_vertices, num_procs)].push_back({requester, new_dist});
         }
 
     }
@@ -1479,10 +1479,14 @@ int algorithm_opt(
         MPI_Barrier(MPI_COMM_WORLD);
         
         // cout << "opt pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
-        pull_model_process_long_edges(
-            k, vertex_mapping, local_d, local_changed,
-            rank, num_procs, num_vertices, delta
-        );
+
+        // TODO TODO TODO
+
+
+        // pull_model_process_long_edges(
+        //     k, vertex_mapping, local_d, local_changed,
+        //     rank, num_procs, num_vertices, delta
+        // );
 
         MPI_Barrier(MPI_COMM_WORLD);
 
@@ -1609,7 +1613,7 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
         }
         else if (option == PRUNING) {
             algorithm_pruning(A, vertex_mapping, buckets, k, rank, num_vertices, num_procs,
-                    local_d, local_changed, local_d_prev, win_d, win_changed, delta, real_max_weigh, start_vertex, end_vertex);
+                    local_d, local_changed, local_d_prev, win_d, win_changed, delta, real_max_weight, start_vertex, end_vertex);
         }
         else if (option == HYBRID) {
             int break_the_loop = algorithm_hybrid(
