@@ -1,10 +1,10 @@
 CC := CC     # use mpiCC when not on okeanos
 LFLAGS := 
-ALL :=  dijkstra
+ALL :=  dijkstra_compiled
 
 all : $(ALL)
 
-dijkstra: dijkstra.cpp
+dijkstra_compiled: dijkstra.cpp
 	$(CC) -o $@ $<  # -lblas # uncomment this when not on okeanos
 
 clean :
