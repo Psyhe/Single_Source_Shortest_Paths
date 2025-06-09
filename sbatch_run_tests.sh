@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #SBATCH --job-name sssp-tests
-#SBATCH --output output_test_prev.txt
+#SBATCH --output output_test_prev_hyb_prun.txt
 #SBATCH --account "g101-2284"
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 24
