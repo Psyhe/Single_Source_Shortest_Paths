@@ -324,7 +324,7 @@ unordered_map<int, long long> delta_stepping_basic(unordered_map<int, Vertex> ve
 
             local_flag = !(A.size() == 0);
             // cout << "Local flag: " << local_flag << "rank: " << rank << " set size: " << A.size()  <<endl;
-            // cout<< "Current k: " << k << endl;
+            cout<< "Current k: " << k << endl;
             MPI_Allreduce(&local_flag, &global_flag, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
         }
 
