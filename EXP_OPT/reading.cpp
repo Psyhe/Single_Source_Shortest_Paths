@@ -263,9 +263,11 @@ void process_bucket(
     for (int u : A) {
         Vertex& current_vertex = vertex_mapping[u];
         for (Edge& e : current_vertex.edges) {
-            relax_edge(u, e, rank, num_vertices, num_procs,
-                       vertex_mapping, local_d, local_changed, local_d_prev,
-                       win_d, win_changed);
+            if (e.weight > delta) {
+                relax_edge(u, e, rank, num_vertices, num_procs,
+                        vertex_mapping, local_d, local_changed, local_d_prev,
+                        win_d, win_changed);
+            }
         }
     }
 
@@ -1063,27 +1065,27 @@ void algorithm_pruning(
 
     // if (total_pull < total_push) {
         // cout << "pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
-        pull_model_process_long_edges(
-            k, vertex_mapping, local_d, local_changed,
-            rank, num_procs, num_vertices, delta
-        );
+        // pull_model_process_long_edges(
+        //     k, vertex_mapping, local_d, local_changed,
+        //     rank, num_procs, num_vertices, delta
+        // );
 
-        MPI_Barrier(MPI_COMM_WORLD);
+        // MPI_Barrier(MPI_COMM_WORLD);
+
+        // set<int> A_prim = update_buckets_and_collect_active_set(
+        //     local_d, local_changed, local_d_prev, buckets,
+        //     rank, num_vertices, num_procs, k
+        // );
+    // } else {
+        process_bucket(
+            buckets[k], vertex_mapping, rank, num_vertices, num_procs,
+            local_d, local_changed, local_d_prev, win_d, win_changed
+        );
 
         set<int> A_prim = update_buckets_and_collect_active_set(
             local_d, local_changed, local_d_prev, buckets,
             rank, num_vertices, num_procs, k
         );
-    // } else {
-    //     process_bucket(
-    //         buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-    //         local_d, local_changed, local_d_prev, win_d, win_changed
-    //     );
-
-    //     set<int> A_prim = update_buckets_and_collect_active_set(
-    //         local_d, local_changed, local_d_prev, buckets,
-    //         rank, num_vertices, num_procs, k
-    //     );
     // }
 
     buckets[k].clear();
