@@ -748,7 +748,6 @@ void pull_model(
 
                 local_d_prev[v_local_index] = old_dist;
                 local_d[v_local_index] = new_dist;
-                local_changed[v_local_index]  = 1;
 
                 buckets[new_bucket_idx].insert(v);
             }
