@@ -1037,20 +1037,18 @@ int algorithm_opt(
 
     if (total_pull < total_push) {
         // process short outer edges first, not to forget them later
+        
+        process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
+                    local_d, local_changed, local_d_prev, win_d, win_changed);
 
-        loop_process_bucket_outer_short_phase(
-            buckets[k], vertex_mapping, buckets, rank, num_vertices, num_procs,
-            local_d, local_changed, local_d_prev, win_d, win_changed, k
-        );
+        set<int> A_prim = update_buckets_and_collect_active_set(
+            local_d, local_changed, local_d_prev, buckets,
+            rank, num_vertices, num_procs, k
+        );        
 
-        // process_bucket_outer_short(buckets[k], vertex_mapping, rank, num_vertices, num_procs,
-        //             local_d, local_changed, local_d_prev, win_d, win_changed);
 
-        // set<int> A_prim = update_buckets_and_collect_active_set(
-        //     local_d, local_changed, local_d_prev, buckets,
-        //     rank, num_vertices, num_procs, k
-        // );        
-
+        MPI_Barrier(MPI_COMM_WORLD);
+        
         // cout << "opt pull model!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1" << endl;
         pull_model_process_long_edges(
             k, vertex_mapping, local_d, local_changed,
