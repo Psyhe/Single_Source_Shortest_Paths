@@ -5,9 +5,9 @@ import filecmp
 import datetime
 
 def run_tests(break_on_fail, local):   
-    now = datetime.datetime.now()       
-    now.time()
-    print(now.time())
+    now = datetime.datetime.now()
+    formatted_time = now.strftime("%H:%M:%S")
+    print(formatted_time)
     Path("outputs").mkdir(parents=True, exist_ok=True)
     for solution in Path(".").iterdir():
         if solution.is_dir() and not solution.name in ["tests", "outputs"]:
