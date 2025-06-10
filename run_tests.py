@@ -3,8 +3,9 @@ from pathlib import Path
 import subprocess
 import filecmp
 import datetime
-import time  # Added for timing
+import time
 import re
+import os
 
 
 def run_tests(break_on_fail, local):   
@@ -22,11 +23,11 @@ def run_tests(break_on_fail, local):
                     print(make.stdout.decode())
                     exit(1)
                 continue
+
             print(f"Solution: {solution.name}")
             for test in Path("tests").iterdir():
                 workers = int(test.name[test.name.rfind("_") + 1:])
                 
-                # Extract n from test name and calculate edges
                 match = re.search(r"_n_(\d+)_k_", test.name)
                 if match:
                     n_value = int(match.group(1))
@@ -35,7 +36,6 @@ def run_tests(break_on_fail, local):
                     n_value = 0
                     edges = 0
 
-                # Remove old outputs
                 for f in Path("outputs").iterdir():
                     f.unlink()
 
@@ -60,8 +60,16 @@ def run_tests(break_on_fail, local):
                 for i in range(workers):
                     expected = f"tests/{test.name}/{i}.out"
                     actual = f"outputs/{i}.out"
-                    if not filecmp.cmp(expected, actual, shallow=False):
-                        print(f"    {test.name}: FAILED (outputs differ on rank {i}) [Took {duration:.3f} sec, Edges: {edges}]")
+                    try:
+                        if not filecmp.cmp(expected, actual, shallow=False):
+                            print(f"    {test.name}: FAILED (outputs differ on rank {i}) [Took {duration:.3f} sec, Edges: {edges}]")
+                            failed = True
+                            if break_on_fail:
+                                exit(1)
+                            break
+                    except FileNotFoundError as e:
+                        print(f"    {test.name}: FAILED (missing file on rank {i})")
+                        print(f"        Missing file: {e.filename}")
                         failed = True
                         if break_on_fail:
                             exit(1)
@@ -69,6 +77,7 @@ def run_tests(break_on_fail, local):
 
                 if not failed:
                     print(f"    {test.name}: PASSED [Took {duration:.3f} sec, Edges: {edges}]")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Test runner')
