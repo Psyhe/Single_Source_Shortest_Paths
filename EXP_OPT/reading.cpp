@@ -191,14 +191,6 @@ void try_update_distance_and_flag_changed(
         MPI_Win_flush(owner_rank, win_d);
     }
     MPI_Win_unlock(owner_rank, win_d);
-
-    // if (new_d < current_dv) {
-    //     long long updated = 1;
-    //     MPI_Win_lock(MPI_LOCK_EXCLUSIVE, owner_rank, 0 );
-    //     MPI_Put(&updated, 1, MPI_LONG_LONG, owner_rank, local_idx, 1, MPI_LONG_LONG );
-    //     MPI_Win_flush(owner_rank );
-    //     MPI_Win_unlock(owner_rank );
-    // }
 }
 
 void relax_edge(
@@ -590,13 +582,13 @@ long long local_pull(
     return pull_volume;
 }
 
-struct Request {
+struct PullRequest {
     long long requester;
     long long responder;
     long long edge_weight;
 };
 
-struct Response {
+struct PullResponse {
     long long node;
     long long d_v_prim;
 };
@@ -613,7 +605,7 @@ void pull_model(
     int start_node,
     int end_node
 ) {
-    vector<vector<Request>> outgoing_requests(num_procs);
+    vector<vector<PullRequest>> outgoing_requests(num_procs);
 
     for (int v = start_node; v <= end_node; ++v) {
         int local_idx = global_to_local_index(v, rank, num_vertices, num_procs);
@@ -635,7 +627,7 @@ void pull_model(
 
     // Flatten and send requests
     vector<int> sendcounts(num_procs), recvcounts(num_procs);
-    vector<int> sdispls(num_procs), rdispls(num_procs);
+    vector<int> send_displs(num_procs), recv_displs(num_procs);
     vector<long long> sendbuf;
 
 
@@ -643,15 +635,16 @@ void pull_model(
         sendcounts[i] = outgoing_requests[i].size() * 3; // 3 = sizeof request struct
     }
 
-    sdispls[0] = 0;
-    for (int i = 1; i < num_procs; i++)
-        sdispls[i] = sdispls[i - 1] + sendcounts[i - 1];
+    send_displs[0] = 0;
+    for (int i = 1; i < num_procs; i++) {
+        send_displs[i] = send_displs[i - 1] + sendcounts[i - 1];
+    }
 
-    int total_send = sdispls[num_procs - 1] + sendcounts[num_procs - 1];
+    int total_send = send_displs[num_procs - 1] + sendcounts[num_procs - 1];
     sendbuf.resize(total_send);
 
     for (int i = 0; i < num_procs; i++) {
-        int offset = sdispls[i];
+        int offset = send_displs[i];
         for (const auto& req : outgoing_requests[i]) {
             sendbuf[offset++] = req.requester;
             sendbuf[offset++] = req.responder;
@@ -661,18 +654,18 @@ void pull_model(
 
     MPI_Alltoall(sendcounts.data(), 1, MPI_INT, recvcounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
-    rdispls[0] = 0;
+    recv_displs[0] = 0;
     for (int i = 1; i < num_procs; i++) {
-        rdispls[i] = rdispls[i - 1] + recvcounts[i - 1];
+        recv_displs[i] = recv_displs[i - 1] + recvcounts[i - 1];
     }
 
-    int total_recv = rdispls[num_procs - 1] + recvcounts[num_procs - 1];
+    int total_recv = recv_displs[num_procs - 1] + recvcounts[num_procs - 1];
     vector<long long> recvbuf(total_recv);
 
-    MPI_Alltoallv(sendbuf.data(), sendcounts.data(), sdispls.data(), MPI_LONG_LONG,
-                  recvbuf.data(), recvcounts.data(), rdispls.data(), MPI_LONG_LONG, MPI_COMM_WORLD);
+    MPI_Alltoallv(sendbuf.data(), sendcounts.data(), send_displs.data(), MPI_LONG_LONG,
+                  recvbuf.data(), recvcounts.data(), recv_displs.data(), MPI_LONG_LONG, MPI_COMM_WORLD);
 
-    vector<vector<Response>> outgoing_responses(num_procs);
+    vector<vector<PullResponse>> outgoing_responses(num_procs);
 
     for (size_t i = 0; i < recvbuf.size(); i += 3) {
         long long requester = recvbuf[i];
@@ -697,16 +690,16 @@ void pull_model(
         sendcounts[i] = outgoing_responses[i].size() * 2; // size of response
     }
 
-    sdispls[0] = 0;
+    send_displs[0] = 0;
     for (int i = 1; i < num_procs; i++) {
-        sdispls[i] = sdispls[i - 1] + sendcounts[i - 1];
+        send_displs[i] = send_displs[i - 1] + sendcounts[i - 1];
     }
 
-    total_send = sdispls[num_procs - 1] + sendcounts[num_procs - 1];
+    total_send = send_displs[num_procs - 1] + sendcounts[num_procs - 1];
     sendbuf.resize(total_send);
 
     for (int i = 0; i < num_procs; i++) {
-        int offset = sdispls[i];
+        int offset = send_displs[i];
         for (const auto& res : outgoing_responses[i]) {
             sendbuf[offset++] = res.node;
             sendbuf[offset++] = res.d_v_prim;
@@ -716,16 +709,16 @@ void pull_model(
     // Exchange responses
     MPI_Alltoall(sendcounts.data(), 1, MPI_INT, recvcounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
-    rdispls[0] = 0;
+    recv_displs[0] = 0;
     for (int i = 1; i < num_procs; i++) {
-        rdispls[i] = rdispls[i - 1] + recvcounts[i - 1];
+        recv_displs[i] = recv_displs[i - 1] + recvcounts[i - 1];
     }
 
-    total_recv = rdispls[num_procs - 1] + recvcounts[num_procs - 1];
+    total_recv = recv_displs[num_procs - 1] + recvcounts[num_procs - 1];
     recvbuf.resize(total_recv);
 
-    MPI_Alltoallv(sendbuf.data(), sendcounts.data(), sdispls.data(), MPI_LONG_LONG,
-                  recvbuf.data(), recvcounts.data(), rdispls.data(), MPI_LONG_LONG, MPI_COMM_WORLD);
+    MPI_Alltoallv(sendbuf.data(), sendcounts.data(), send_displs.data(), MPI_LONG_LONG,
+                  recvbuf.data(), recvcounts.data(), recv_displs.data(), MPI_LONG_LONG, MPI_COMM_WORLD);
 
 
     for (size_t i = 0; i < recvbuf.size(); i += 2) {
