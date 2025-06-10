@@ -1,6 +1,6 @@
 #!/bin/bash -l
-#SBATCH --job-name 10_big_test_delta
-#SBATCH --output output_delta_10_1.txt
+#SBATCH --job-name 1_big_test_delta
+#SBATCH --output output_delta_1.txt
 #SBATCH --account "g101-2284"
 #SBATCH --nodes 4
 #SBATCH --ntasks-per-node 24
