@@ -393,7 +393,6 @@ void intersect_and_check_active_set(
     MPI_Allreduce(&local_flag, &global_flag, 1, MPI_INT, MPI_LOR, MPI_COMM_WORLD);
 }
 
-
 void loop_process_bucket_phase(
     set<int>& A,
     unordered_map<int, Vertex>& vertex_mapping,
@@ -501,7 +500,6 @@ void loop_process_dynamic_bucket_phase_hybrid(
 
         MPI_Barrier(MPI_COMM_WORLD);
 
-        // THIS PART DIFFERS FROM intersect_and_check_active_set !
         set<int> A_prim = update_set_and_collect_active(
             local_d,   local_d_prev, current,
             rank, num_vertices, num_procs
@@ -526,9 +524,9 @@ long long local_push(
     const set<int>& current_bucket,
     const unordered_map<int, Vertex>& vertex_mapping,
     const vector<long long>& local_d,
-    long long k,                // current bucket index
+    long long k,                
     double delta,
-    int w_max                   // max edge weight
+    int w_max                   
 ) {
     long long push_volume = 0;
 
@@ -551,12 +549,12 @@ long long local_pull(
     const set<int>& current_bucket,
     const unordered_map<int, Vertex>& vertex_mapping,
     const vector<long long>& local_d,
-    long long k,                // current bucket index
+    long long k,               
     double delta,
     int w_max,
     int rank,
     int num_vertices,
-    int num_procs                  // max edge weight
+    int num_procs                  
 ) {
     long long pull_volume = 0;
     long long pull_requests = 0;
@@ -1174,8 +1172,8 @@ int main(int argc, char** argv) {
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC, start_vertex, end_vertex);
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, IOS, start_vertex, end_vertex);
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, PRUNING, start_vertex, end_vertex);
-    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, HYBRID, start_vertex, end_vertex);
-    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, OPT, start_vertex, end_vertex);
+    unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, HYBRID, start_vertex, end_vertex);
+    // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, OPT, start_vertex, end_vertex);
 
     // Dummy output for testing (write -1 as shortest path for each vertex)
     std::ofstream outfile(output_file);
