@@ -1,6 +1,6 @@
 #!/bin/bash -l
-#SBATCH --job-name smallest-big-test
-#SBATCH --output output_small_ones.txt
+#SBATCH --job-name big_test_delta_10
+#SBATCH --output output_delta_10.txt
 #SBATCH --account "g101-2284"
 #SBATCH --nodes 4
 #SBATCH --ntasks-per-node 24
