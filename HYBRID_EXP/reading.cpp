@@ -17,7 +17,7 @@ const long long INF = 1e18;
 int global_root = 0;
 const double tau = 0.4;
 
-int delta = 25; // TODO fine-tune
+int delta = 40; // TODO fine-tune
 
 const int BASIC = 0;
 const int IOS = 1;
