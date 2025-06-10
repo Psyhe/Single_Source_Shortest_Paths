@@ -36,7 +36,7 @@ struct Vertex {
     int degree;
 };
 
-long long get_bucket_index(long long distance, int delta) 
+long long get_bucket(long long distance, int delta) 
 {
     return distance / delta;
 }
@@ -56,7 +56,7 @@ long long get_global_min_bucket(unordered_map<long long, set<int>>& buckets)
     for (const auto& [idx, nodes] : buckets) 
     {
         if (!nodes.empty()) 
-            local_min_bucket = std::min(local_min_bucket, idx);
+            local_min_bucket = min(local_min_bucket, idx);
     }
     long long global_min_bucket;
     MPI_Allreduce(&local_min_bucket, &global_min_bucket, 1, MPI_LONG_LONG, MPI_MIN, MPI_COMM_WORLD);
@@ -140,7 +140,7 @@ unordered_map<long long, set<int>> initialize_buckets(
     unordered_map<long long, set<int>> buckets;
 
     int starting_point = local_to_global_index(0, rank, num_vertices, num_procs);
-    for (int i = 0; i < local_vertex_count; ++i) {
+    for (int i = 0; i < local_vertex_count; i++) {
         int global_id = starting_point + i;
         if (global_id != root) {
             buckets[INF / delta].insert(global_id);
@@ -167,7 +167,7 @@ unordered_map<int, long long> gather_local_distances(
     int local_vertex_count = local_d.size();
     int starting_point = local_to_global_index(0, rank, num_vertices, num_procs);
 
-    for (int i = 0; i < local_vertex_count; ++i) {
+    for (int i = 0; i < local_vertex_count; i++) {
         int global_id = starting_point + i;
         result[global_id] = local_d[i];
     }
@@ -328,8 +328,8 @@ set<int> update_buckets_and_collect_active_set(
 
     for (int i = 0; i < local_vertex_count; i++) {
         if (local_d_prev[i] != local_d[i]) {
-            long long old_bucket = local_d_prev[i] / delta;
-            long long new_bucket = local_d[i] / delta;
+            long long old_bucket = get_bucket(local_d_prev[i], delta);
+            long long new_bucket = get_bucket(local_d[i], delta);
             int global_id = local_to_global_index(i, rank, num_vertices, num_procs);
 
             if (new_bucket < old_bucket) {
@@ -604,9 +604,7 @@ struct Response {
 void pull_model(
     unordered_map<int, Vertex>& vertex_mapping,
     vector<long long>& local_d,
-     
     vector<long long>& local_d_prev,
-
     long long k,
     int rank,
     int num_procs,
@@ -615,45 +613,44 @@ void pull_model(
     int start_node,
     int end_node
 ) {
-    std::vector<std::vector<Request>> outgoing_requests(num_procs);
+    vector<vector<Request>> outgoing_requests(num_procs);
 
     for (int v = start_node; v <= end_node; ++v) {
         int local_idx = global_to_local_index(v, rank, num_vertices, num_procs);
         long long dv = local_d[local_idx];
 
-        if (dv < (k + 1) * delta) 
-            continue;
+        if (dv >= (k + 1) * delta) {
+            Vertex current = vertex_mapping[v];
+            for (const auto& edge : current.edges) {
+                int u = edge.v2;
+                long long w = edge.weight;
 
-        Vertex current = vertex_mapping[v];
-        for (const auto& edge : current.edges) {
-            int u = edge.v2;
-            long long w = edge.weight;
-
-            if (w < dv - k * delta) {
-                int local_owner = owner(u, num_vertices, num_procs);
-                outgoing_requests[local_owner].push_back({v, u, w});
+                if (w < dv - k * delta) {
+                    int local_owner = owner(u, num_vertices, num_procs);
+                    outgoing_requests[local_owner].push_back({v, u, w});
+                }
             }
         }
     }
 
     // Flatten and send requests
-    std::vector<int> sendcounts(num_procs), recvcounts(num_procs);
-    std::vector<int> sdispls(num_procs), rdispls(num_procs);
-    std::vector<long long> sendbuf;
+    vector<int> sendcounts(num_procs), recvcounts(num_procs);
+    vector<int> sdispls(num_procs), rdispls(num_procs);
+    vector<long long> sendbuf;
 
 
-    for (int i = 0; i < num_procs; ++i) {
+    for (int i = 0; i < num_procs; i++) {
         sendcounts[i] = outgoing_requests[i].size() * 3; // 3 = sizeof request struct
     }
 
     sdispls[0] = 0;
-    for (int i = 1; i < num_procs; ++i)
+    for (int i = 1; i < num_procs; i++)
         sdispls[i] = sdispls[i - 1] + sendcounts[i - 1];
 
     int total_send = sdispls[num_procs - 1] + sendcounts[num_procs - 1];
     sendbuf.resize(total_send);
 
-    for (int i = 0; i < num_procs; ++i) {
+    for (int i = 0; i < num_procs; i++) {
         int offset = sdispls[i];
         for (const auto& req : outgoing_requests[i]) {
             sendbuf[offset++] = req.requester;
@@ -665,16 +662,17 @@ void pull_model(
     MPI_Alltoall(sendcounts.data(), 1, MPI_INT, recvcounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
     rdispls[0] = 0;
-    for (int i = 1; i < num_procs; ++i)
+    for (int i = 1; i < num_procs; i++) {
         rdispls[i] = rdispls[i - 1] + recvcounts[i - 1];
+    }
 
     int total_recv = rdispls[num_procs - 1] + recvcounts[num_procs - 1];
-    std::vector<long long> recvbuf(total_recv);
+    vector<long long> recvbuf(total_recv);
 
     MPI_Alltoallv(sendbuf.data(), sendcounts.data(), sdispls.data(), MPI_LONG_LONG,
                   recvbuf.data(), recvcounts.data(), rdispls.data(), MPI_LONG_LONG, MPI_COMM_WORLD);
 
-    std::vector<std::vector<Response>> outgoing_responses(num_procs);
+    vector<vector<Response>> outgoing_responses(num_procs);
 
     for (size_t i = 0; i < recvbuf.size(); i += 3) {
         long long requester = recvbuf[i];
@@ -693,22 +691,21 @@ void pull_model(
             long long new_dist = du + w;
             outgoing_responses[owner(requester, num_vertices, num_procs)].push_back({requester, new_dist});
         }
-
     }
 
-    // Serialize responses
-    for (int i = 0; i < num_procs; ++i) {
+    for (int i = 0; i < num_procs; i++) {
         sendcounts[i] = outgoing_responses[i].size() * 2; // size of response
     }
 
     sdispls[0] = 0;
-    for (int i = 1; i < num_procs; ++i)
+    for (int i = 1; i < num_procs; i++) {
         sdispls[i] = sdispls[i - 1] + sendcounts[i - 1];
+    }
 
     total_send = sdispls[num_procs - 1] + sendcounts[num_procs - 1];
     sendbuf.resize(total_send);
 
-    for (int i = 0; i < num_procs; ++i) {
+    for (int i = 0; i < num_procs; i++) {
         int offset = sdispls[i];
         for (const auto& res : outgoing_responses[i]) {
             sendbuf[offset++] = res.node;
@@ -720,8 +717,9 @@ void pull_model(
     MPI_Alltoall(sendcounts.data(), 1, MPI_INT, recvcounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
     rdispls[0] = 0;
-    for (int i = 1; i < num_procs; ++i)
+    for (int i = 1; i < num_procs; i++) {
         rdispls[i] = rdispls[i - 1] + recvcounts[i - 1];
+    }
 
     total_recv = rdispls[num_procs - 1] + recvcounts[num_procs - 1];
     recvbuf.resize(total_recv);
@@ -737,10 +735,9 @@ void pull_model(
             int v_local_index = global_to_local_index(v, rank, num_vertices, num_procs);
 
             long long old_dist = local_d[v_local_index];
-            if (new_dist < old_dist) 
-            {
-                int old_bucket_idx = get_bucket_index(old_dist, delta);
-                int new_bucket_idx = get_bucket_index(new_dist, delta);
+            if (new_dist < old_dist) {
+                int old_bucket_idx = get_bucket(old_dist, delta);
+                int new_bucket_idx = get_bucket(new_dist, delta);
 
                 if (buckets.count(old_bucket_idx)) {
                     buckets[old_bucket_idx].erase(v);
@@ -754,10 +751,6 @@ void pull_model(
         }
     }
 }
-
-
-
-
 
 void algorithm_ios(
     set<int>& A,
@@ -848,7 +841,6 @@ void algorithm_pruning(
     buckets[k].clear();
 }
 
-
 int algorithm_hybrid(
     set<int>& A,
     unordered_map<int, Vertex>& vertex_mapping,
@@ -897,7 +889,6 @@ int algorithm_hybrid(
 
     if (total_processed_vertices > (tau * num_vertices)) {
         // Process everything from remaining buckets at once
-        // cout << "HYBRID !!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
         A.clear();
         set<int> result;
 
@@ -915,23 +906,6 @@ int algorithm_hybrid(
     }
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int algorithm_opt(
     set<int>& A,
@@ -997,6 +971,7 @@ int algorithm_opt(
             local_d,   local_d_prev, buckets,
             rank, num_vertices, num_procs, k
         );        
+        MPI_Barrier(MPI_COMM_WORLD);
 
         pull_model(vertex_mapping, local_d,   local_d_prev, k, rank, num_procs, num_vertices, buckets, start_vertex, end_vertex);
 
@@ -1048,7 +1023,6 @@ unordered_map<int, long long> algorithm(unordered_map<int, Vertex> vertex_mappin
     vector<long long> local_d(local_vertex_count, INF);
     vector<long long> local_d_prev(local_vertex_count, INF);
 
-    // Setup MPI Windows
     MPI_Win win_d ;
 
     MPI_Win_create(local_d.data(), local_vertex_count * sizeof(long long),
@@ -1203,8 +1177,6 @@ int main(int argc, char** argv) {
     for (int i = start_vertex; i <= end_vertex; i++) {
         my_vertices[i].degree = my_vertices[i].edges.size();
     }
-
-    cout << "Processing" << endl;
 
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, BASIC, start_vertex, end_vertex);
     // unordered_map<int, long long> final_values = algorithm(my_vertices, global_root, rank, num_processes, num_vertices, max_weight, IOS, start_vertex, end_vertex);
